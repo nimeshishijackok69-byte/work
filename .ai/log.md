@@ -113,3 +113,23 @@
 - Test API route accepts both email types with proper validation
 
 **Commit**: `feat(email): set up resend email service with templates`
+
+## [2026-04-15] fix | Auth Edge Runtime Compatibility Fix
+
+**Actor**: AI Agent
+**Changes**:
+- Fixed NextAuth v5 Edge runtime compatibility issues
+- Added `session: { strategy: 'jwt' }` to auth config
+- Added `secret: process.env.NEXTAUTH_SECRET` to auth config
+- Updated `next.config.ts` with experimental serverActions allowedOrigins
+- Cleaned up comments in auth files for clarity
+
+**Issue**: "There was a problem with the server configuration" error on Vercel login
+
+**Root Cause**: NextAuth middleware runs on Edge runtime but auth config was missing required session strategy and secret configuration
+
+**Validation**:
+- Ran `npm run type-check` — passed
+- Ran `npm run lint` — passed
+
+**Commit**: `fix(auth): resolve edge runtime compatibility and server configuration issues`
