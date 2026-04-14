@@ -58,3 +58,18 @@
 - Extended NextAuth types in TypeScript to persist specific properties (`role` and `id`) in JWT state.
 - Formed the middleware guard `middleware.ts` to actively redirect unwanted access flows on `/admin/*` and `/reviewer/*`.
 - Handled Next.js types configuration to suppress generics collisions when fetching NextAuth roles.
+
+## [2026-04-14] feat | Session 1.4 Completed: Auth Pages (Login & Register)
+
+**Actor**: AI Agent
+**Changes**:
+- Built the public auth route group with a centered auth layout and a production-oriented login screen.
+- Added a server-side login action with Zod validation, inline error states, and loading feedback for credentials sign-in.
+- Implemented `POST /api/auth/register` to support first-admin bootstrap when no admin exists and admin-created reviewer/admin accounts afterward.
+- Added shared auth validation schemas plus the missing UI primitives (`input`, `card`, `label`, `toast`) used by the new auth screens.
+- Replaced the default landing page with session-aware redirects and created protected placeholder pages for `/admin` and `/reviewer` so role-based login lands on valid routes.
+- Refined the root app branding/theme to match the FormFlow design direction and tightened auth typing to remove `any` usage.
+
+**Validation**:
+- Ran `npm run type-check`
+- Ran `npm run lint`
