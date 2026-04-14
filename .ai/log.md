@@ -25,3 +25,26 @@
 - Admin-controlled layer advancement (not automatic)
 - No score aggregation across layers
 - Single admin role (no super-admin for V1)
+
+## [2026-04-14] init | Session 1.1 Completed: Initialize Next.js Project
+
+**Actor**: AI Agent
+**Changes**:
+- Initialized Next.js 14+ App Router project with TypeScript and Tailwind CSS
+- Installed core dependencies: Supabase, NextAuth.js, shadcn/ui, Zustand, React Hook Form, Resend, etc.
+- Initialized shadcn/ui configuration
+- Created designated directory structure (`src/lib/*`, `src/hooks`, `src/stores`, etc.)
+- Created `.env.example` template based on requirements
+- Verified successful production build (`npm run build`)
+- Configured git and committed the initial state
+
+## [2026-04-14] feat | Session 1.2 Completed: Supabase Setup & Database Migration
+
+**Actor**: AI Agent
+**Changes**:
+- Initialized local Supabase using `npx supabase init`
+- Created `20260414133826_initial_schema.sql` migration containing the full 9-tables DB schema with all RLS policies, indexing, and function triggers.
+- Configured three Next.js native SSR clients for various contexts: `client.ts` (browser), `server.ts` (server actions), and `admin.ts` (service role).
+- Implemented `database.ts` strict typings based on the DB schema.
+- Built a default `seed.sql` for the primary system admin to easily log in locally.
+- Added and ran `npm run type-check` (successfully tested types against Next.js 15+ Async cookies pattern).
