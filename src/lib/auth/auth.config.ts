@@ -2,12 +2,9 @@ import type { NextAuthConfig } from 'next-auth'
 
 export const authConfig = {
   pages: {
-    signIn: '/login', // specify login page
+    signIn: '/login',
   },
-  providers: [
-    // Leave array empty, we will inject Credentials in auth.ts
-    // to avoid Edge compatibility issues with Node APIs on middleware
-  ],
+  providers: [],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user
@@ -16,14 +13,14 @@ export const authConfig = {
 
       if (isOnAdmin) {
         if (isLoggedIn && auth.user.role === 'admin') return true
-        return false // Redirect unauthenticated or wrong role to login
+        return false
       }
-      
+
       if (isOnReviewer) {
         if (isLoggedIn && auth.user.role === 'reviewer') return true
-        return false // Redirect unauthenticated or wrong role to login
+        return false
       }
-      
+
       return true
     },
     jwt({ token, user }) {
@@ -40,5 +37,7 @@ export const authConfig = {
       }
       return session
     }
-  }
+  },
+  session: { strategy: 'jwt' },
+  secret: process.env.NEXTAUTH_SECRET,
 } satisfies NextAuthConfig

@@ -16,7 +16,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        // 1. Authenticate against Supabase Auth
         const supabase = createAdminClient()
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: credentials.email as string,
@@ -30,7 +29,6 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
         const userId = authData.user.id
 
-        // 2. Fetch the user's role from admin_profile or reviewer_master based on auth_user_id
         const { data: adminProfileData } = await supabase
           .from('admin_profile')
           .select('*')
