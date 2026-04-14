@@ -73,3 +73,17 @@
 **Validation**:
 - Ran `npm run type-check`
 - Ran `npm run lint`
+
+## [2026-04-14] feat | Session 1.5 Completed: Base Layout (Shell, Sidebar, Header)
+
+**Actor**: AI Agent
+**Changes**:
+- Built the shared dashboard shell for authenticated routes with a new `(dashboard)` layout wrapping admin and reviewer pages.
+- Added reusable layout primitives: `AppShell`, `Sidebar`, `Header`, `PageHeader`, plus centralized role-based navigation config.
+- Implemented responsive sidebar behavior with mobile drawer support, desktop collapse state, active-route highlighting, notification placeholder, and session-aware user header.
+- Added a server logout action and connected it to the dashboard header.
+- Refreshed the admin and reviewer placeholder pages to use the new shared shell and added placeholder admin routes for `/admin/events` and `/admin/reviewers` so sidebar navigation lands on valid pages.
+
+**Validation**:
+- Ran `npm run type-check`
+- Ran `npm run lint`
