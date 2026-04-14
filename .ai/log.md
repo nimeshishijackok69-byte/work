@@ -48,3 +48,13 @@
 - Implemented `database.ts` strict typings based on the DB schema.
 - Built a default `seed.sql` for the primary system admin to easily log in locally.
 - Added and ran `npm run type-check` (successfully tested types against Next.js 15+ Async cookies pattern).
+
+## [2026-04-14] feat | Session 1.3 Completed: NextAuth.js Configuration
+
+**Actor**: AI Agent
+**Changes**:
+- Integrated NextAuth v5 using credentials matching to Supabase's `auth.users`.
+- Authored custom `auth.ts` leveraging Supabase service role `signInWithPassword()` for reliable verifications.
+- Extended NextAuth types in TypeScript to persist specific properties (`role` and `id`) in JWT state.
+- Formed the middleware guard `middleware.ts` to actively redirect unwanted access flows on `/admin/*` and `/reviewer/*`.
+- Handled Next.js types configuration to suppress generics collisions when fetching NextAuth roles.
