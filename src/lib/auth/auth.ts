@@ -2,6 +2,7 @@ import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import { authConfig } from './auth.config'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { Database } from '@/types/database'
 
 export const { auth, signIn, signOut, handlers } = NextAuth({
   ...authConfig,
@@ -36,7 +37,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           .eq('auth_user_id', userId)
           .single()
 
-        const adminProfile = adminProfileData as any
+        const adminProfile =
+          adminProfileData as Database['public']['Tables']['admin_profile']['Row'] | null
 
         if (adminProfile && adminProfile.is_active) {
           return {
@@ -53,7 +55,8 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
           .eq('auth_user_id', userId)
           .single()
 
-        const reviewerProfile = reviewerProfileData as any
+        const reviewerProfile =
+          reviewerProfileData as Database['public']['Tables']['reviewer_master']['Row'] | null
 
         if (reviewerProfile && reviewerProfile.is_active) {
           return {
