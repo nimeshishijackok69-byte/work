@@ -87,3 +87,29 @@
 **Validation**:
 - Ran `npm run type-check`
 - Ran `npm run lint`
+
+## [2026-04-14] feat | Session 1.6 Completed: Environment & Email Setup
+
+**Actor**: AI Agent
+**Changes**:
+- Created Resend email client initialization in `src/lib/email/resend.ts`
+- Built email template system with two templates:
+  - `submission-confirmation.ts` — HTML email template for teacher submission confirmation
+  - `reviewer-assignment.ts` — HTML email template for reviewer assignment notifications
+- Created test API route at `src/app/api/test-email/route.ts` for development email testing
+- Updated README.md with comprehensive project documentation including:
+  - Tech stack overview
+  - Prerequisites and setup instructions
+  - Environment variable configuration guide
+  - Database commands reference
+  - Project structure documentation
+  - Development workflow guidelines
+- Documented email testing instructions in README
+
+**Validation**:
+- Ran `npm run type-check` — passed
+- Ran `npm run lint` — passed
+- Email templates render correctly with proper HTML structure
+- Test API route accepts both email types with proper validation
+
+**Commit**: `feat(email): set up resend email service with templates`
