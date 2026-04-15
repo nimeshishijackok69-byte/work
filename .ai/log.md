@@ -131,3 +131,19 @@
 - Ran `npm run type-check`
 - Ran `npm run lint`
 - Ran `npm run build`
+
+## [2026-04-15] feat | Session 2.3 Completed: Form Builder Core Infrastructure
+
+**Actor**: AI Agent
+**Changes**:
+- Added a shared typed form-schema model covering all 12 PRD field types plus helper factories for default draft questions and safe schema normalization.
+- Created the Zustand-powered form builder state store with field selection, duplication, removal, and dnd-kit-backed reordering support.
+- Built the new admin builder route at `/admin/events/[id]/builder` with a three-panel layout: field palette, sortable canvas, and config panel.
+- Added first-pass draft schema persistence through `GET/PUT /api/events/[id]/form-schema`, including admin ownership checks, draft-only mutation rules, and audit logging.
+- Updated the events workspace so each event card links directly into the builder.
+- Installed the missing `@dnd-kit/core`, `@dnd-kit/sortable`, and `@dnd-kit/utilities` dependencies required by the builder foundation.
+
+**Validation**:
+- Ran `npm run type-check`
+- Ran `npm run lint`
+- Ran `npm run build`

@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { auth } from '@/lib/auth/auth'
+import type { FormSchema } from '@/lib/forms/schema'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   defaultGradeConfig,
@@ -36,6 +37,20 @@ export class AdminAccessError extends Error {
   constructor(message = 'Only admins can perform this action.') {
     super(message)
     this.name = 'AdminAccessError'
+  }
+}
+
+export class EventNotFoundError extends Error {
+  constructor(message = 'Event not found.') {
+    super(message)
+    this.name = 'EventNotFoundError'
+  }
+}
+
+export class EventDraftRequiredError extends Error {
+  constructor(message = 'This event is no longer editable because it is not in draft.') {
+    super(message)
+    this.name = 'EventDraftRequiredError'
   }
 }
 
@@ -185,6 +200,72 @@ export async function createEventForAdmin(
   })
 
   return event
+}
+
+export async function getEventForAdmin(
+  context: AdminContext,
+  eventId: string
+): Promise<EventRow | null> {
+  const { admin, supabase } = context
+  const { data, error } = await supabase
+    .from('event_master')
+    .select('*')
+    .eq('id', eventId)
+    .eq('created_by', admin.id)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[EVENTS] Failed to load event', error)
+    throw new Error('Unable to load the event right now.')
+  }
+
+  return (data as EventRow | null) ?? null
+}
+
+export async function updateEventFormSchemaForAdmin(
+  context: AdminContext,
+  eventId: string,
+  formSchema: FormSchema
+): Promise<EventRow> {
+  const { admin, supabase } = context
+  const event = await getEventForAdmin(context, eventId)
+
+  if (!event) {
+    throw new EventNotFoundError()
+  }
+
+  if (event.status !== 'draft') {
+    throw new EventDraftRequiredError()
+  }
+
+  const { data, error } = await supabase
+    .from('event_master')
+    .update({
+      form_schema: formSchema,
+    } as never)
+    .eq('id', eventId)
+    .eq('created_by', admin.id)
+    .select('*')
+    .single()
+  const updatedEvent = data as EventRow | null
+
+  if (error || !updatedEvent) {
+    console.error('[EVENTS] Failed to update form schema', error)
+    throw new Error('Unable to save the form schema right now.')
+  }
+
+  await logTransaction(supabase, {
+    action: 'form_schema_updated',
+    actor_id: admin.id,
+    actor_type: 'admin',
+    event_id: updatedEvent.id,
+    metadata: {
+      field_count: formSchema.fields.length,
+      status: updatedEvent.status,
+    },
+  })
+
+  return updatedEvent
 }
 
 async function logTransaction(supabase: SupabaseAdminClient, input: TransactionInsert) {

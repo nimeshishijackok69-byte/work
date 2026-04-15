@@ -270,6 +270,25 @@ export default async function AdminEventsPage({
                           </p>
                         </div>
                       </div>
+
+                      <div className="mt-5 flex flex-wrap items-center gap-3">
+                        <Link
+                          className={cn(
+                            buttonVariants({
+                              size: 'sm',
+                              variant: event.status === 'draft' ? 'default' : 'outline',
+                            })
+                          )}
+                          href={`/admin/events/${event.id}/builder`}
+                        >
+                          Open builder
+                        </Link>
+                        <p className="text-sm text-slate-500">
+                          {event.status === 'draft'
+                            ? 'Keep shaping the draft form before publish.'
+                            : 'Builder remains available as a read-only reference once the event leaves draft.'}
+                        </p>
+                      </div>
                     </div>
                   ))}
 
