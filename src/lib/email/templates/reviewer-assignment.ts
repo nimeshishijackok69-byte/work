@@ -1,28 +1,28 @@
 import { resend } from '../resend';
 
 export interface ReviewerAssignmentEmailProps {
-  reviewerName: string;
-  reviewerEmail: string;
-  eventTitle: string;
-  layerNumber: number;
-  submissionCount: number;
-  deadline?: string;
+    reviewerName: string;
+    reviewerEmail: string;
+    eventTitle: string;
+    layerNumber: number;
+    submissionCount: number;
+    deadline?: string;
 }
 
 export async function sendReviewerAssignmentEmail({
-  reviewerName,
-  reviewerEmail,
-  eventTitle,
-  layerNumber,
-  submissionCount,
-  deadline,
+    reviewerName,
+    reviewerEmail,
+    eventTitle,
+    layerNumber,
+    submissionCount,
+    deadline,
 }: ReviewerAssignmentEmailProps) {
-  try {
-    const { data, error } = await resend.emails.send({
-      from: 'FormFlow <noreply@formflow.com>',
-      to: reviewerEmail,
-      subject: `New Review Assignment - ${eventTitle} (Layer ${layerNumber})`,
-      html: `
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'FormFlow <noreply@formflow.com>',
+            to: reviewerEmail,
+            subject: `New Review Assignment - ${eventTitle} (Layer ${layerNumber})`,
+            html: `
         <!DOCTYPE html>
         <html>
           <head>
@@ -72,16 +72,16 @@ export async function sendReviewerAssignmentEmail({
           </body>
         </html>
       `,
-    });
+        });
 
-    if (error) {
-      console.error('[Email] Failed to send reviewer assignment:', error);
-      return { success: false, error };
+        if (error) {
+            console.error('[Email] Failed to send reviewer assignment:', error);
+            return { success: false, error };
+        }
+
+        return { success: true, data };
+    } catch (error) {
+        console.error('[Email] Error sending reviewer assignment:', error);
+        return { success: false, error };
     }
-
-    return { success: true, data };
-  } catch (error) {
-    console.error('[Email] Error sending reviewer assignment:', error);
-    return { success: false, error };
-  }
 }

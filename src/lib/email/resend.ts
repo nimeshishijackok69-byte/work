@@ -4,8 +4,7 @@ import { createElement, type ReactNode } from 'react'
 import { Resend } from 'resend'
 import { z } from 'zod'
 import {
-  getReviewerAssignmentText,
-  ReviewerAssignmentEmail,
+  sendReviewerAssignmentEmail as sendReviewerAssignmentViaTemplate,
   type ReviewerAssignmentEmailProps,
 } from './templates/reviewer-assignment'
 import {
@@ -148,13 +147,8 @@ export async function sendSubmissionConfirmationEmail(
 }
 
 export async function sendReviewerAssignmentEmail(
-  options: ReviewerAssignmentEmailProps & { to: string | string[] }
+  options: ReviewerAssignmentEmailProps & { to?: string | string[] }
 ) {
-  return sendEmail({
-    react: createElement(ReviewerAssignmentEmail, options),
-    subject: `New review assignment: ${options.eventTitle}`,
-    text: getReviewerAssignmentText(options),
-    to: options.to,
-  })
+  return sendReviewerAssignmentViaTemplate(options)
 }
 

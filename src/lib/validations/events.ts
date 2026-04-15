@@ -147,5 +147,83 @@ export function getEventListPayloadFromSearchParams(searchParams: URLSearchParam
   }
 }
 
+/** Schema for updating event metadata (draft events only). */
+export const eventUpdateSchema = z
+  .object({
+    title: trimmedString.min(3, 'Title must be at least 3 characters long.').optional(),
+    description: z
+      .preprocess(normalizeOptionalText, trimmedString.max(2000, 'Description is too long.'))
+      .optional(),
+    review_layers: z.coerce
+      .number()
+      .int()
+      .min(1, 'Use at least 1 review layer.')
+      .max(10, 'Use 10 review layers or fewer.')
+      .optional(),
+    scoring_type: scoringTypeSchema.optional(),
+    max_score: z.coerce
+      .number()
+      .int()
+      .min(1, 'Maximum score must be at least 1.')
+      .max(1000, 'Maximum score must be 1000 or less.')
+      .optional(),
+    expiration_date: z
+      .preprocess(normalizeOptionalDate, z.string().datetime({ offset: true }))
+      .optional()
+      .nullable(),
+    teacher_fields: z.array(teacherFieldSchema).optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (values.teacher_fields) {
+      if (!values.teacher_fields.includes('name')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Teacher name must stay enabled.',
+          path: ['teacher_fields'],
+        })
+      }
+
+      if (!values.teacher_fields.includes('email')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Teacher email must stay enabled.',
+          path: ['teacher_fields'],
+        })
+      }
+    }
+
+    if (values.expiration_date) {
+      const expirationDate = new Date(values.expiration_date)
+
+      if (expirationDate.getTime() <= Date.now()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Expiration must be in the future.',
+          path: ['expiration_date'],
+        })
+      }
+    }
+  })
+  .transform((values) => ({
+    ...values,
+    ...(values.teacher_fields ? { teacher_fields: normalizeTeacherFields(values.teacher_fields) } : {}),
+    ...(values.scoring_type === 'numeric' && values.max_score ? { max_score: values.max_score } : {}),
+  }))
+
+export function getEventUpdatePayloadFromFormData(formData: FormData) {
+  return {
+    title: formData.get('title') || undefined,
+    description: formData.get('description'),
+    review_layers: formData.get('review_layers') || undefined,
+    scoring_type: formData.get('scoring_type') || undefined,
+    max_score: formData.get('max_score') || undefined,
+    expiration_date: formData.get('expiration_date'),
+    teacher_fields: formData.getAll('teacher_fields').length
+      ? formData.getAll('teacher_fields')
+      : undefined,
+  }
+}
+
 export type EventCreateValues = z.infer<typeof eventCreateSchema>
+export type EventUpdateValues = z.infer<typeof eventUpdateSchema>
 export type EventListQueryValues = z.infer<typeof eventListQuerySchema>

@@ -220,7 +220,11 @@ export default async function AdminEventsPage({
                           </div>
 
                           <div>
-                            <h2 className="text-xl font-semibold text-slate-950">{event.title}</h2>
+                            <Link href={`/admin/events/${event.id}`}>
+                              <h2 className="text-xl font-semibold text-slate-950 transition hover:text-primary">
+                                {event.title}
+                              </h2>
+                            </Link>
                             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
                               {event.description ||
                                 'No description added yet. This draft is ready for builder setup.'}
@@ -276,7 +280,19 @@ export default async function AdminEventsPage({
                           className={cn(
                             buttonVariants({
                               size: 'sm',
-                              variant: event.status === 'draft' ? 'default' : 'outline',
+                              variant: 'default',
+                            })
+                          )}
+                          href={`/admin/events/${event.id}`}
+                        >
+                          View details
+                          <ChevronRight className="size-4" />
+                        </Link>
+                        <Link
+                          className={cn(
+                            buttonVariants({
+                              size: 'sm',
+                              variant: event.status === 'draft' ? 'outline' : 'outline',
                             })
                           )}
                           href={`/admin/events/${event.id}/builder`}

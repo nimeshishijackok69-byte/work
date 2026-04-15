@@ -116,6 +116,7 @@
 - Ran `npm run type-check` — passed
 - Ran `npm run lint` — passed
 
+
 ## [2026-04-15] fix | Email Smoke Test Completed
 
 **Actor**: AI Agent
@@ -148,6 +149,21 @@
 - Built the new admin builder route at `/admin/events/[id]/builder` with a three-panel layout.
 - Added persistence through `GET/PUT /api/events/[id]/form-schema`.
 - Installed `@dnd-kit` dependencies for drag-and-drop support.
+
+**Validation**:
+- Ran `npm run type-check` — passed.
+
+## [2026-04-15] feat | Session 2.2 Completed: Event Detail, Edit & Status Management
+
+**Actor**: AI Agent
+**Changes**:
+- Added `eventUpdateSchema` and payload extractors for partial event updates.
+- Added event lifecycle services: `updateEventForAdmin`, `deleteEventForAdmin`, `publishEventForAdmin`, `closeEventForAdmin`, and `getSubmissionCountForEvent`.
+- Implemented `GET/PUT/DELETE /api/events/[id]` and `POST /api/events/[id]/status` API routes for granular event operations.
+- Created `/admin/events/[id]` detail page combining event configurations, statistics (field count, layer depth, submissions), and action areas.
+- Built `EventEditForm` for drafting events and `EventStatusActions` to control lifecycle (draft -> published -> closed).
+- Linked event list cards to their detail view for better navigation.
+- Fixed a pre-existing email issue relating to `sendReviewerAssignmentEmail`.
 
 **Validation**:
 - Ran `npm run type-check` — passed.

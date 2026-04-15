@@ -1,11 +1,13 @@
 import { randomBytes } from 'node:crypto'
 import { auth } from '@/lib/auth/auth'
 import type { FormSchema } from '@/lib/forms/schema'
+import { normalizeFormSchema } from '@/lib/forms/schema'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   defaultGradeConfig,
   type EventCreateValues,
   type EventListQueryValues,
+  type EventUpdateValues,
 } from '@/lib/validations/events'
 import type { Database } from '@/types/database'
 
@@ -51,6 +53,20 @@ export class EventDraftRequiredError extends Error {
   constructor(message = 'This event is no longer editable because it is not in draft.') {
     super(message)
     this.name = 'EventDraftRequiredError'
+  }
+}
+
+export class EventPublishError extends Error {
+  constructor(message = 'This event cannot be published yet.') {
+    super(message)
+    this.name = 'EventPublishError'
+  }
+}
+
+export class EventStatusTransitionError extends Error {
+  constructor(message = 'This status transition is not allowed.') {
+    super(message)
+    this.name = 'EventStatusTransitionError'
   }
 }
 
@@ -266,6 +282,221 @@ export async function updateEventFormSchemaForAdmin(
   })
 
   return updatedEvent
+}
+
+export async function updateEventForAdmin(
+  context: AdminContext,
+  eventId: string,
+  input: EventUpdateValues
+): Promise<EventRow> {
+  const { admin, supabase } = context
+  const event = await getEventForAdmin(context, eventId)
+
+  if (!event) {
+    throw new EventNotFoundError()
+  }
+
+  if (event.status !== 'draft') {
+    throw new EventDraftRequiredError()
+  }
+
+  const updatePayload: Record<string, unknown> = {}
+
+  if (input.title !== undefined) updatePayload.title = input.title
+  if (input.description !== undefined) updatePayload.description = input.description || null
+  if (input.review_layers !== undefined) updatePayload.review_layers = input.review_layers
+  if (input.scoring_type !== undefined) {
+    updatePayload.scoring_type = input.scoring_type
+    if (input.scoring_type === 'grade' && event.scoring_type !== 'grade') {
+      updatePayload.grade_config = [...defaultGradeConfig]
+    }
+  }
+  if (input.max_score !== undefined) updatePayload.max_score = input.max_score
+  if (input.expiration_date !== undefined) updatePayload.expiration_date = input.expiration_date
+  if (input.teacher_fields !== undefined) updatePayload.teacher_fields = input.teacher_fields
+
+  if (Object.keys(updatePayload).length === 0) {
+    return event
+  }
+
+  const { data, error } = await supabase
+    .from('event_master')
+    .update(updatePayload as never)
+    .eq('id', eventId)
+    .eq('created_by', admin.id)
+    .select('*')
+    .single()
+  const updatedEvent = data as EventRow | null
+
+  if (error || !updatedEvent) {
+    console.error('[EVENTS] Failed to update event', error)
+    throw new Error('Unable to update the event right now.')
+  }
+
+  await logTransaction(supabase, {
+    action: 'event_updated',
+    actor_id: admin.id,
+    actor_type: 'admin',
+    event_id: updatedEvent.id,
+    metadata: {
+      changed_fields: Object.keys(updatePayload),
+      status: updatedEvent.status,
+    },
+  })
+
+  return updatedEvent
+}
+
+export async function deleteEventForAdmin(
+  context: AdminContext,
+  eventId: string
+): Promise<void> {
+  const { admin, supabase } = context
+  const event = await getEventForAdmin(context, eventId)
+
+  if (!event) {
+    throw new EventNotFoundError()
+  }
+
+  if (event.status !== 'draft') {
+    throw new EventDraftRequiredError(
+      'Only draft events can be deleted. Close the event instead.'
+    )
+  }
+
+  // Delete related transaction logs first
+  await supabase
+    .from('transaction_master')
+    .delete()
+    .eq('event_id', eventId)
+
+  const { error } = await supabase
+    .from('event_master')
+    .delete()
+    .eq('id', eventId)
+    .eq('created_by', admin.id)
+
+  if (error) {
+    console.error('[EVENTS] Failed to delete event', error)
+    throw new Error('Unable to delete the event right now.')
+  }
+}
+
+export async function publishEventForAdmin(
+  context: AdminContext,
+  eventId: string
+): Promise<EventRow> {
+  const { admin, supabase } = context
+  const event = await getEventForAdmin(context, eventId)
+
+  if (!event) {
+    throw new EventNotFoundError()
+  }
+
+  if (event.status !== 'draft') {
+    throw new EventStatusTransitionError(
+      'Only draft events can be published.'
+    )
+  }
+
+  // Validate the form has at least one field before publishing
+  const formSchema = normalizeFormSchema(event.form_schema)
+
+  if (!formSchema.fields.length) {
+    throw new EventPublishError(
+      'Add at least one form field before publishing. Open the form builder to get started.'
+    )
+  }
+
+  const { data, error } = await supabase
+    .from('event_master')
+    .update({ status: 'published' } as never)
+    .eq('id', eventId)
+    .eq('created_by', admin.id)
+    .select('*')
+    .single()
+  const publishedEvent = data as EventRow | null
+
+  if (error || !publishedEvent) {
+    console.error('[EVENTS] Failed to publish event', error)
+    throw new Error('Unable to publish the event right now.')
+  }
+
+  await logTransaction(supabase, {
+    action: 'event_published',
+    actor_id: admin.id,
+    actor_type: 'admin',
+    event_id: publishedEvent.id,
+    metadata: {
+      share_slug: publishedEvent.share_slug,
+      field_count: formSchema.fields.length,
+      review_layers: publishedEvent.review_layers,
+    },
+  })
+
+  return publishedEvent
+}
+
+export async function closeEventForAdmin(
+  context: AdminContext,
+  eventId: string
+): Promise<EventRow> {
+  const { admin, supabase } = context
+  const event = await getEventForAdmin(context, eventId)
+
+  if (!event) {
+    throw new EventNotFoundError()
+  }
+
+  if (event.status !== 'published') {
+    throw new EventStatusTransitionError(
+      'Only published events can be closed.'
+    )
+  }
+
+  const { data, error } = await supabase
+    .from('event_master')
+    .update({ status: 'closed' } as never)
+    .eq('id', eventId)
+    .eq('created_by', admin.id)
+    .select('*')
+    .single()
+  const closedEvent = data as EventRow | null
+
+  if (error || !closedEvent) {
+    console.error('[EVENTS] Failed to close event', error)
+    throw new Error('Unable to close the event right now.')
+  }
+
+  await logTransaction(supabase, {
+    action: 'event_closed',
+    actor_id: admin.id,
+    actor_type: 'admin',
+    event_id: closedEvent.id,
+    metadata: {
+      previous_status: 'published',
+    },
+  })
+
+  return closedEvent
+}
+
+export async function getSubmissionCountForEvent(
+  context: AdminContext,
+  eventId: string
+): Promise<number> {
+  const { supabase } = context
+  const { count, error } = await supabase
+    .from('submission')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', eventId)
+
+  if (error) {
+    console.error('[EVENTS] Failed to count submissions', error)
+    return 0
+  }
+
+  return count ?? 0
 }
 
 async function logTransaction(supabase: SupabaseAdminClient, input: TransactionInsert) {
