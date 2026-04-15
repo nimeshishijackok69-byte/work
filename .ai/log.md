@@ -88,48 +88,66 @@
 - Ran `npm run type-check`
 - Ran `npm run lint`
 
-## [2026-04-14] feat | Session 1.6 Completed: Environment & Email Setup
+## [2026-04-15] feat | Session 1.6 Completed: Environment & Email Setup
 
 **Actor**: AI Agent
 **Changes**:
-- Created Resend email client initialization in `src/lib/email/resend.ts`
-- Built email template system with two templates:
-  - `submission-confirmation.ts` — HTML email template for teacher submission confirmation
-  - `reviewer-assignment.ts` — HTML email template for reviewer assignment notifications
-- Created test API route at `src/app/api/test-email/route.ts` for development email testing
-- Updated README.md with comprehensive project documentation including:
-  - Tech stack overview
-  - Prerequisites and setup instructions
-  - Environment variable configuration guide
-  - Database commands reference
-  - Project structure documentation
-  - Development workflow guidelines
-- Documented email testing instructions in README
+- Added the Resend email service wrapper with runtime env validation and shared send helpers in `src/lib/email/resend.ts`.
+- Created reusable email templates for teacher submission confirmations and reviewer assignment notifications (using React `.tsx` and fallback text streams).
+- Added a development-only `GET/POST /api/test-email` route for inspecting config state and sending sample emails.
+- Updated README.md with comprehensive project documentation and local email testing instructions.
 
 **Validation**:
-- Ran `npm run type-check` — passed
-- Ran `npm run lint` — passed
-- Email templates render correctly with proper HTML structure
-- Test API route accepts both email types with proper validation
-
-**Commit**: `feat(email): set up resend email service with templates`
+- Ran `npm run type-check`
+- Ran `npm run lint`
 
 ## [2026-04-15] fix | Auth Edge Runtime Compatibility Fix
 
 **Actor**: AI Agent
 **Changes**:
-- Fixed NextAuth v5 Edge runtime compatibility issues
-- Added `session: { strategy: 'jwt' }` to auth config
-- Added `secret: process.env.NEXTAUTH_SECRET` to auth config
-- Updated `next.config.ts` with experimental serverActions allowedOrigins
-- Cleaned up comments in auth files for clarity
+- Fixed NextAuth v5 Edge runtime compatibility issues.
+- Added `session: { strategy: 'jwt' }` and `secret` to auth config.
+- Updated `next.config.ts` with experimental allowedOrigins for server actions.
 
-**Issue**: "There was a problem with the server configuration" error on Vercel login
-
-**Root Cause**: NextAuth middleware runs on Edge runtime but auth config was missing required session strategy and secret configuration
+**Issue**: "There was a problem with the server configuration" error on Vercel login.
+**Root Cause**: Missing required JWT session strategy and secret for Edge runtime.
 
 **Validation**:
 - Ran `npm run type-check` — passed
 - Ran `npm run lint` — passed
 
-**Commit**: `fix(auth): resolve edge runtime compatibility and server configuration issues`
+## [2026-04-15] fix | Email Smoke Test Completed
+
+**Actor**: AI Agent
+**Changes**:
+- Installed `@react-email/render` so Resend can render the React-based email templates during live sends.
+- Updated local environment configuration with credentials.
+- Verified the development-only `/api/test-email` route with live sends.
+
+**Validation**:
+- Sent a live test email successfully via `POST /api/test-email`.
+
+## [2026-04-15] feat | Session 2.1 Completed: Event CRUD Foundation
+
+**Actor**: AI Agent
+**Changes**:
+- Added shared event validation and service modules covering admin authorization and event listing.
+- Implemented `GET /api/events` and `POST /api/events` with admin-only access and body validation.
+- Replaced the `/admin/events` placeholder with a real event workspace for draft event creation.
+- Added reusable `Textarea` UI primitive and a server-action-based create-event form.
+
+**Validation**:
+- Ran `npm run build` — passed.
+
+## [2026-04-15] feat | Session 2.3 Completed: Form Builder Core Infrastructure
+
+**Actor**: AI Agent
+**Changes**:
+- Added a shared typed form-schema model covering all 12 PRD field types.
+- Created the Zustand-powered form builder state store with dnd-kit-backed reordering support.
+- Built the new admin builder route at `/admin/events/[id]/builder` with a three-panel layout.
+- Added persistence through `GET/PUT /api/events/[id]/form-schema`.
+- Installed `@dnd-kit` dependencies for drag-and-drop support.
+
+**Validation**:
+- Ran `npm run type-check` — passed.
