@@ -103,3 +103,16 @@
 - Ran `npm run type-check`
 - Ran `npm run lint`
 - Ran `npm run build`
+
+## [2026-04-15] fix | Email Smoke Test Completed
+
+**Actor**: AI Agent
+**Changes**:
+- Installed `@react-email/render` so Resend can render the React-based email templates during live sends.
+- Updated local environment configuration with the provided Supabase credentials and a dedicated test-recipient email address.
+- Verified the development-only `/api/test-email` route by sending a live submission-confirmation email through Resend.
+
+**Validation**:
+- Ran `npm run type-check`
+- Ran `npm run lint`
+- Sent a live test email successfully via `POST /api/test-email`
