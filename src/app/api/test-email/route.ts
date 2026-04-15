@@ -86,12 +86,13 @@ export async function POST(request: Request) {
     const result =
       template === 'reviewer-assignment'
         ? await sendReviewerAssignmentEmail({
-            reviewerName: 'Jordan Reviewer',
-            reviewerEmail: recipient,
+            assignmentCount: 3,
+            dueDateLabel: 'Friday at 5:00 PM',
             eventTitle: 'District Excellence Awards',
-            layerNumber: 1,
-            submissionCount: 3,
-            deadline: 'Friday at 5:00 PM',
+            layerName: 'Layer R1',
+            reviewUrl: 'http://localhost:3000/reviewer',
+            reviewerName: 'Jordan Reviewer',
+            to: recipient,
           })
         : await sendSubmissionConfirmationEmail({
             eventTitle: 'District Excellence Awards',
@@ -104,12 +105,6 @@ export async function POST(request: Request) {
             teacherName: 'Taylor Teacher',
             to: recipient,
           })
-
-    const emailId = result && typeof result === 'object' && 'id' in result
-      ? result.id
-      : result && typeof result === 'object' && 'data' in result
-        ? (result as { data?: { id?: string } }).data?.id
-        : 'unknown'
 
     return NextResponse.json({
       data: {
