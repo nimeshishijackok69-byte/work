@@ -15,6 +15,7 @@ interface FormBuilderStore {
   fields: FormField[]
   selectedFieldId: string | null
   isDirty: boolean
+  changeToken: number
   initialize: (eventId: string, fields: FormField[]) => void
   addField: (type: FieldType) => void
   removeField: (id: string) => void
@@ -31,11 +32,13 @@ export const useFormBuilderStore = create<FormBuilderStore>((set) => ({
   fields: [],
   selectedFieldId: null,
   isDirty: false,
+  changeToken: 0,
   initialize: (eventId, fields) =>
     set(() => {
       const clonedFields = cloneFields(fields)
 
       return {
+        changeToken: 0,
         currentEventId: eventId,
         fields: clonedFields,
         selectedFieldId: clonedFields[0]?.id ?? null,
@@ -47,6 +50,7 @@ export const useFormBuilderStore = create<FormBuilderStore>((set) => ({
       const nextField = createDefaultField(type)
 
       return {
+        changeToken: state.changeToken + 1,
         fields: [...state.fields, nextField],
         selectedFieldId: nextField.id,
         isDirty: true,
@@ -59,6 +63,7 @@ export const useFormBuilderStore = create<FormBuilderStore>((set) => ({
         state.selectedFieldId === id ? nextFields[0]?.id ?? null : state.selectedFieldId
 
       return {
+        changeToken: state.changeToken + 1,
         fields: nextFields,
         selectedFieldId: nextSelectedId,
         isDirty: true,
@@ -66,6 +71,7 @@ export const useFormBuilderStore = create<FormBuilderStore>((set) => ({
     }),
   updateField: (id, updates) =>
     set((state) => ({
+      changeToken: state.changeToken + 1,
       fields: state.fields.map((field) =>
         field.id === id
           ? ({
@@ -89,6 +95,7 @@ export const useFormBuilderStore = create<FormBuilderStore>((set) => ({
       nextFields.splice(index + 1, 0, nextField)
 
       return {
+        changeToken: state.changeToken + 1,
         fields: nextFields,
         selectedFieldId: nextField.id,
         isDirty: true,
@@ -104,6 +111,7 @@ export const useFormBuilderStore = create<FormBuilderStore>((set) => ({
       }
 
       return {
+        changeToken: state.changeToken + 1,
         fields: arrayMove(state.fields, oldIndex, newIndex),
         isDirty: true,
       }
@@ -117,6 +125,7 @@ export const useFormBuilderStore = create<FormBuilderStore>((set) => ({
       const clonedFields = cloneFields(fields)
 
       return {
+        changeToken: 0,
         fields: clonedFields,
         selectedFieldId: clonedFields[0]?.id ?? null,
         isDirty: false,

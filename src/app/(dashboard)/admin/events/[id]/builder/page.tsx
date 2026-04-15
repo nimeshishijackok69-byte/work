@@ -64,6 +64,7 @@ export default async function EventBuilderPage({
       />
 
       <FormBuilder
+        eventDescription={event.description}
         eventId={event.id}
         eventStatus={event.status}
         eventTitle={event.title}
@@ -72,6 +73,7 @@ export default async function EventBuilderPage({
         reviewLayers={event.review_layers}
         scoringType={event.scoring_type}
         shareSlug={event.share_slug}
+        teacherFields={event.teacher_fields}
         updatedAt={event.updated_at}
       />
     </div>

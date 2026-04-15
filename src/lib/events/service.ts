@@ -301,17 +301,31 @@ export async function updateEventForAdmin(
   }
 
   const updatePayload: Record<string, unknown> = {}
+  const nextScoringType = input.scoring_type ?? event.scoring_type
 
   if (input.title !== undefined) updatePayload.title = input.title
   if (input.description !== undefined) updatePayload.description = input.description || null
   if (input.review_layers !== undefined) updatePayload.review_layers = input.review_layers
   if (input.scoring_type !== undefined) {
     updatePayload.scoring_type = input.scoring_type
-    if (input.scoring_type === 'grade' && event.scoring_type !== 'grade') {
+  }
+
+  if (nextScoringType === 'grade') {
+    updatePayload.max_score = 100
+
+    if (input.grade_config !== undefined) {
+      updatePayload.grade_config = input.grade_config
+    } else if (input.scoring_type === 'grade' && event.scoring_type !== 'grade') {
       updatePayload.grade_config = [...defaultGradeConfig]
     }
+  } else if (input.scoring_type === 'numeric') {
+    updatePayload.grade_config = null
   }
-  if (input.max_score !== undefined) updatePayload.max_score = input.max_score
+
+  if (nextScoringType === 'numeric' && input.max_score !== undefined) {
+    updatePayload.max_score = input.max_score
+  }
+
   if (input.expiration_date !== undefined) updatePayload.expiration_date = input.expiration_date
   if (input.teacher_fields !== undefined) updatePayload.teacher_fields = input.teacher_fields
 

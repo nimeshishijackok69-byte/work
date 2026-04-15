@@ -17,6 +17,55 @@ export const defaultGradeConfig = [
   { label: 'F', min: 0, max: 59 },
 ] as const
 
+export const gradeConfigItemSchema = z
+  .object({
+    label: trimmedString
+      .min(1, 'Grade label is required.')
+      .max(24, 'Keep grade labels under 24 characters.'),
+    min: z.coerce
+      .number()
+      .int()
+      .min(0, 'Minimum score cannot be below 0.')
+      .max(100, 'Minimum score cannot exceed 100.'),
+    max: z.coerce
+      .number()
+      .int()
+      .min(0, 'Maximum score cannot be below 0.')
+      .max(100, 'Maximum score cannot exceed 100.'),
+  })
+  .superRefine((value, ctx) => {
+    if (value.max < value.min) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Maximum score must be greater than or equal to minimum score.',
+        path: ['max'],
+      })
+    }
+  })
+
+export const gradeConfigSchema = z
+  .array(gradeConfigItemSchema)
+  .min(1, 'Add at least one grade range.')
+  .max(12, 'Use 12 grade ranges or fewer.')
+  .superRefine((values, ctx) => {
+    const normalized = values
+      .map((item, index) => ({ ...item, index }))
+      .sort((left, right) => left.min - right.min)
+
+    for (let index = 1; index < normalized.length; index += 1) {
+      const previous = normalized[index - 1]
+      const current = normalized[index]
+
+      if (current.min <= previous.max) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `This range overlaps with ${previous.label}.`,
+          path: [current.index, 'min'],
+        })
+      }
+    }
+  })
+
 function normalizeOptionalText(value: unknown) {
   if (typeof value !== 'string') {
     return value
@@ -54,11 +103,39 @@ function normalizeOptionalDate(value: unknown) {
   return parsed.toISOString()
 }
 
+function normalizeGradeConfigInput(value: unknown) {
+  if (typeof value !== 'string') {
+    return value
+  }
+
+  const normalized = value.trim()
+
+  if (!normalized) {
+    return undefined
+  }
+
+  try {
+    return JSON.parse(normalized)
+  } catch {
+    return value
+  }
+}
+
 function normalizeTeacherFields(fields: string[]) {
   const unique = Array.from(new Set(fields))
   const ordered = teacherFieldOrder.filter((field) => unique.includes(field))
 
   return ordered
+}
+
+export function normalizeGradeConfig(value: unknown) {
+  const parsed = gradeConfigSchema.safeParse(value)
+
+  if (!parsed.success) {
+    return defaultGradeConfig.map((item) => ({ ...item }))
+  }
+
+  return parsed.data.map((item) => ({ ...item }))
 }
 
 export const eventCreateSchema = z
@@ -73,6 +150,7 @@ export const eventCreateSchema = z
       .min(1, 'Use at least 1 review layer.')
       .max(10, 'Use 10 review layers or fewer.'),
     scoring_type: scoringTypeSchema,
+    grade_config: z.preprocess(normalizeGradeConfigInput, gradeConfigSchema).optional(),
     max_score: z.coerce
       .number()
       .int()
@@ -117,6 +195,7 @@ export const eventCreateSchema = z
     ...values,
     description: values.description ?? undefined,
     expiration_date: values.expiration_date ?? null,
+    grade_config: values.scoring_type === 'grade' ? values.grade_config ?? normalizeGradeConfig(undefined) : null,
     max_score: values.scoring_type === 'numeric' ? values.max_score ?? 100 : 100,
     teacher_fields: normalizeTeacherFields(values.teacher_fields),
   }))
@@ -133,6 +212,7 @@ export function getEventCreatePayloadFromFormData(formData: FormData) {
     description: formData.get('description'),
     review_layers: formData.get('review_layers'),
     scoring_type: formData.get('scoring_type'),
+    grade_config: formData.get('grade_config'),
     max_score: formData.get('max_score'),
     expiration_date: formData.get('expiration_date'),
     teacher_fields: formData.getAll('teacher_fields'),
@@ -161,6 +241,7 @@ export const eventUpdateSchema = z
       .max(10, 'Use 10 review layers or fewer.')
       .optional(),
     scoring_type: scoringTypeSchema.optional(),
+    grade_config: z.preprocess(normalizeGradeConfigInput, gradeConfigSchema).optional(),
     max_score: z.coerce
       .number()
       .int()
@@ -207,6 +288,7 @@ export const eventUpdateSchema = z
   .transform((values) => ({
     ...values,
     ...(values.teacher_fields ? { teacher_fields: normalizeTeacherFields(values.teacher_fields) } : {}),
+    ...(values.grade_config ? { grade_config: values.grade_config } : {}),
     ...(values.scoring_type === 'numeric' && values.max_score ? { max_score: values.max_score } : {}),
   }))
 
@@ -216,6 +298,7 @@ export function getEventUpdatePayloadFromFormData(formData: FormData) {
     description: formData.get('description'),
     review_layers: formData.get('review_layers') || undefined,
     scoring_type: formData.get('scoring_type') || undefined,
+    grade_config: formData.get('grade_config') || undefined,
     max_score: formData.get('max_score') || undefined,
     expiration_date: formData.get('expiration_date'),
     teacher_fields: formData.getAll('teacher_fields').length
@@ -227,3 +310,4 @@ export function getEventUpdatePayloadFromFormData(formData: FormData) {
 export type EventCreateValues = z.infer<typeof eventCreateSchema>
 export type EventUpdateValues = z.infer<typeof eventUpdateSchema>
 export type EventListQueryValues = z.infer<typeof eventListQuerySchema>
+export type GradeConfigItem = z.infer<typeof gradeConfigItemSchema>

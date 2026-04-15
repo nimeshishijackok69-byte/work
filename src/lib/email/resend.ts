@@ -104,9 +104,6 @@ function getResendClient() {
   return resendClientInstance
 }
 
-// Export for compatibility with older code if any
-export const resend = getResendClient()
-
 export async function sendEmail({ react, replyTo, subject, text, to }: SendEmailOptions) {
   try {
     const config = getEmailConfig()

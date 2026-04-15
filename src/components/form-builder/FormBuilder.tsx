@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { Clock3, Link2, Save, TriangleAlert } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { type FormSchema } from '@/lib/forms/schema'
 import { cn } from '@/lib/utils'
@@ -10,6 +11,7 @@ import { getSelectedField, useFormBuilderStore } from '@/stores/useFormBuilderSt
 import { FieldCanvas } from './FieldCanvas'
 import { FieldConfigPanel } from './FieldConfigPanel'
 import { FieldPalette } from './FieldPalette'
+import { FormPreview } from './FormPreview'
 
 function formatDateTime(value: string | null) {
   if (!value) {
@@ -24,6 +26,7 @@ function formatDateTime(value: string | null) {
 
 export function FormBuilder({
   eventId,
+  eventDescription,
   eventStatus,
   eventTitle,
   expirationDate,
@@ -31,9 +34,11 @@ export function FormBuilder({
   reviewLayers,
   scoringType,
   shareSlug,
+  teacherFields,
   updatedAt,
 }: {
   eventId: string
+  eventDescription: string | null
   eventStatus: string
   eventTitle: string
   expirationDate: string | null
@@ -41,14 +46,19 @@ export function FormBuilder({
   reviewLayers: number
   scoringType: string
   shareSlug: string
+  teacherFields: unknown
   updatedAt: string
 }) {
   const [feedback, setFeedback] = useState<{
     message: string
     tone: 'error' | 'success'
   } | null>(null)
+  const [activeSaveMode, setActiveSaveMode] = useState<'auto' | 'manual' | null>(null)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState(updatedAt)
   const [isPending, startTransition] = useTransition()
+  const isSavingRef = useRef(false)
+  const changeToken = useFormBuilderStore((state) => state.changeToken)
   const fields = useFormBuilderStore((state) => state.fields)
   const selectedFieldId = useFormBuilderStore((state) => state.selectedFieldId)
   const isDirty = useFormBuilderStore((state) => state.isDirty)
@@ -69,58 +79,118 @@ export function FormBuilder({
     initialize(eventId, initialSchema.fields)
   }, [eventId, initialSchema.fields, initialize, updatedAt])
 
-  const handleSave = () => {
-    startTransition(() => {
-      void (async () => {
-        setFeedback(null)
+  const persistSchema = useCallback(async (mode: 'auto' | 'manual') => {
+    const snapshot = useFormBuilderStore.getState()
 
-        const response = await fetch(`/api/events/${eventId}/form-schema`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fields,
-          }),
+    if (snapshot.currentEventId !== eventId || !snapshot.isDirty || isReadOnly) {
+      return
+    }
+
+    if (isSavingRef.current) {
+      return
+    }
+
+    isSavingRef.current = true
+    setActiveSaveMode(mode)
+
+    if (mode === 'manual') {
+      setFeedback(null)
+    }
+
+    try {
+      const response = await fetch(`/api/events/${eventId}/form-schema`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fields: snapshot.fields,
+        }),
+      })
+
+      const payload = (await response.json().catch(() => ({}))) as {
+        details?: Record<string, string[]>
+        error?: string
+        event?: {
+          updated_at: string
+        }
+        message?: string
+      }
+
+      if (!response.ok) {
+        const detailSummary = payload.details
+          ? Object.values(payload.details)
+              .flat()
+              .join(' ')
+          : null
+
+        setFeedback({
+          tone: 'error',
+          message: detailSummary || payload.error || 'Unable to save the draft schema right now.',
         })
+        return
+      }
 
-        const payload = (await response.json().catch(() => ({}))) as {
-          details?: Record<string, string[]>
-          error?: string
-          event?: {
-            updated_at: string
-          }
-          message?: string
-        }
+      useFormBuilderStore.setState((state) =>
+        state.changeToken === snapshot.changeToken
+          ? {
+              ...state,
+              isDirty: false,
+            }
+          : state
+      )
 
-        if (!response.ok) {
-          const detailSummary = payload.details
-            ? Object.values(payload.details)
-                .flat()
-                .join(' ')
-            : null
+      setLastSavedAt(payload.event?.updated_at ?? new Date().toISOString())
 
-          setFeedback({
-            tone: 'error',
-            message: detailSummary || payload.error || 'Unable to save the draft schema right now.',
-          })
-          return
-        }
-
-        useFormBuilderStore.setState((state) => ({
-          ...state,
-          fields: state.fields,
-          isDirty: false,
-        }))
-
-        setLastSavedAt(payload.event?.updated_at ?? new Date().toISOString())
+      if (mode === 'manual') {
         setFeedback({
           tone: 'success',
           message: payload.message ?? 'Form schema saved.',
         })
-      })()
+      }
+    } catch (error) {
+      console.error('[FORM_BUILDER_SAVE]', error)
+      setFeedback({
+        tone: 'error',
+        message: 'Unable to save the draft schema right now.',
+      })
+    } finally {
+      isSavingRef.current = false
+      setActiveSaveMode(null)
+    }
+  }, [eventId, isReadOnly])
+
+  useEffect(() => {
+    if (isReadOnly || !isDirty) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      startTransition(() => {
+        void persistSchema('auto')
+      })
+    }, 1500)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [activeSaveMode, changeToken, isDirty, isReadOnly, persistSchema, startTransition])
+
+  const handleSave = () => {
+    startTransition(() => {
+      void persistSchema('manual')
     })
   }
+
+  const saveStatusLabel = isReadOnly
+    ? 'Read-only draft reference'
+    : activeSaveMode === 'auto'
+      ? 'Autosaving changes...'
+      : activeSaveMode === 'manual'
+        ? 'Saving draft...'
+        : isDirty
+          ? 'Unsaved changes'
+          : 'All changes saved'
 
   return (
     <div className="space-y-6">
@@ -135,13 +205,19 @@ export function FormBuilder({
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              <Button onClick={() => setIsPreviewOpen(true)} type="button" variant="outline">
+                Preview form
+              </Button>
               <Button disabled={!isDirty || isPending || isReadOnly} onClick={handleSave} type="button">
                 <Save className="size-4" />
-                {isPending ? 'Saving...' : 'Save draft schema'}
+                {activeSaveMode === 'manual' ? 'Saving...' : 'Save draft schema'}
               </Button>
-              <Button disabled type="button" variant="outline">
-                Preview coming next
-              </Button>
+              <Link
+                className={cn(buttonVariants({ variant: 'outline' }))}
+                href={`/admin/events/${eventId}`}
+              >
+                Publish settings
+              </Link>
             </div>
           </div>
         </CardHeader>
@@ -214,8 +290,22 @@ export function FormBuilder({
                   Drag to reorder, select a field to edit it, and save whenever the draft structure feels right.
                 </CardDescription>
               </div>
-              <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-                {fields.length} field{fields.length === 1 ? '' : 's'} | last saved {formatDateTime(lastSavedAt)}
+              <div className="flex flex-wrap items-center gap-2">
+                <div
+                  className={cn(
+                    'rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em]',
+                    isReadOnly
+                      ? 'border-slate-200 bg-slate-50 text-slate-500'
+                      : isDirty
+                        ? 'border-amber-200 bg-amber-50 text-amber-700'
+                        : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  )}
+                >
+                  {saveStatusLabel}
+                </div>
+                <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                  {fields.length} field{fields.length === 1 ? '' : 's'} | last saved {formatDateTime(lastSavedAt)}
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -240,6 +330,17 @@ export function FormBuilder({
           selectedField={selectedField}
         />
       </div>
+
+      <FormPreview
+        eventDescription={eventDescription}
+        eventTitle={eventTitle}
+        expirationDate={expirationDate}
+        fields={fields}
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        shareSlug={shareSlug}
+        teacherFields={teacherFields}
+      />
     </div>
   )
 }

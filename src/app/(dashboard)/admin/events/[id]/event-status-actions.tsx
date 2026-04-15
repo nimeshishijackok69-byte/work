@@ -8,6 +8,7 @@ import {
   LoaderCircle,
   Lock,
   Trash2,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,20 +21,43 @@ import {
 
 interface EventStatusActionsProps {
   eventId: string
+  eventTitle: string
+  expirationDate: string | null
   status: string
   formFieldCount: number
+  shareUrl: string
 }
 
-export function EventStatusActions({ eventId, status, formFieldCount }: EventStatusActionsProps) {
+function formatDate(value: string | null) {
+  if (!value) {
+    return 'No deadline'
+  }
+
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
+export function EventStatusActions({
+  eventId,
+  eventTitle,
+  expirationDate,
+  status,
+  formFieldCount,
+  shareUrl,
+}: EventStatusActionsProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [result, setResult] = useState<EventActionState | null>(null)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false)
 
   async function handlePublish() {
     startTransition(async () => {
       const res = await publishEventAction(eventId)
       setResult(res)
+      setShowPublishConfirm(false)
 
       if (res.success) {
         router.refresh()
@@ -123,7 +147,7 @@ export function EventStatusActions({ eventId, status, formFieldCount }: EventSta
               <Button
                 className="h-11 w-full text-sm font-semibold"
                 disabled={isPending || formFieldCount === 0}
-                onClick={handlePublish}
+                onClick={() => setShowPublishConfirm(true)}
               >
                 {isPending ? (
                   <>
@@ -241,6 +265,81 @@ export function EventStatusActions({ eventId, status, formFieldCount }: EventSta
           </CardContent>
         </Card>
       )}
+
+      {showPublishConfirm ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4">
+          <div className="absolute inset-0" onClick={() => setShowPublishConfirm(false)} />
+          <Card className="relative w-full max-w-2xl border-white/10 bg-white shadow-2xl">
+            <CardHeader className="gap-3">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle>Publish this event?</CardTitle>
+                  <CardDescription>
+                    Publishing will make the teacher form live and lock the draft builder/settings.
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={() => setShowPublishConfirm(false)}
+                  size="icon-sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-950">{eventTitle}</p>
+                <div className="mt-3 grid gap-3 text-sm text-slate-600 md:grid-cols-2">
+                  <div>
+                    <span className="font-medium text-slate-900">Form items:</span> {formFieldCount}
+                  </div>
+                  <div>
+                    <span className="font-medium text-slate-900">Deadline:</span> {formatDate(expirationDate)}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <p className="text-sm font-medium text-emerald-900">Share link that will go live</p>
+                <code className="mt-2 block rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs text-slate-700">
+                  {shareUrl}
+                </code>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  className="flex-1"
+                  disabled={isPending}
+                  onClick={() => setShowPublishConfirm(false)}
+                  type="button"
+                  variant="outline"
+                >
+                  Cancel
+                </Button>
+                <Button className="flex-1" disabled={isPending} onClick={handlePublish} type="button">
+                  {isPending ? (
+                    <>
+                      <LoaderCircle className="size-4 animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="size-4" />
+                      Confirm publish
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <p className="text-sm leading-6 text-slate-500">
+                Once published, this share URL becomes the live teacher submission link.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
     </div>
   )
 }

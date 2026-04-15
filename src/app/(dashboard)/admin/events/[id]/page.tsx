@@ -18,6 +18,7 @@ import {
 } from '@/lib/events/service'
 import { normalizeFormSchema } from '@/lib/forms/schema'
 import { cn } from '@/lib/utils'
+import { normalizeGradeConfig } from '@/lib/validations/events'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -61,6 +62,12 @@ function formatTeacherFields(value: unknown) {
     .filter((field): field is string => typeof field === 'string')
     .map((field) => field.replaceAll('_', ' '))
     .join(', ')
+}
+
+function formatGradeBands(value: unknown) {
+  return normalizeGradeConfig(value)
+    .map((grade) => `${grade.label} (${grade.min}-${grade.max})`)
+    .join(' • ')
 }
 
 export default async function EventDetailPage({
@@ -269,6 +276,11 @@ export default async function EventDetailPage({
                       ? `Numeric (max ${event.max_score})`
                       : 'Letter grade'}
                   </p>
+                  {event.scoring_type === 'grade' ? (
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                      {formatGradeBands(event.grade_config)}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -310,7 +322,10 @@ export default async function EventDetailPage({
         <div className="space-y-6">
           <EventStatusActions
             eventId={event.id}
+            eventTitle={event.title}
+            expirationDate={event.expiration_date}
             formFieldCount={fieldCount}
+            shareUrl={shareUrl}
             status={event.status}
           />
         </div>

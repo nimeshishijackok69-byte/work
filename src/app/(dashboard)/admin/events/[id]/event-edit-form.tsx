@@ -1,12 +1,17 @@
 'use client'
 
-import { useActionState, useEffect, useRef } from 'react'
-import { CalendarClock, LoaderCircle, Save } from 'lucide-react'
+import { useActionState, useEffect, useRef, useState } from 'react'
+import { CalendarClock, LoaderCircle, PlusCircle, Save, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  defaultGradeConfig,
+  normalizeGradeConfig,
+  type GradeConfigItem,
+} from '@/lib/validations/events'
 import { updateEventAction, type EventActionState } from './actions'
 
 interface EventEditFormProps {
@@ -16,6 +21,7 @@ interface EventEditFormProps {
     description: string | null
     review_layers: number
     scoring_type: string
+    grade_config: unknown
     max_score: number
     expiration_date: string | null
     teacher_fields: unknown
@@ -47,11 +53,135 @@ function getTeacherFieldsArray(value: unknown): string[] {
   return value.filter((f): f is string => typeof f === 'string')
 }
 
+function getNextGradeLabel(index: number) {
+  return `Grade ${index + 1}`
+}
+
+function GradeConfigEditor({
+  errors,
+  onChange,
+  value,
+}: {
+  errors?: string[]
+  onChange: (value: GradeConfigItem[]) => void
+  value: GradeConfigItem[]
+}) {
+  const updateRow = (index: number, updates: Partial<GradeConfigItem>) => {
+    onChange(value.map((item, itemIndex) => (itemIndex === index ? { ...item, ...updates } : item)))
+  }
+
+  const addRow = () => {
+    onChange([
+      ...value,
+      {
+        label: getNextGradeLabel(value.length),
+        min: 0,
+        max: 0,
+      },
+    ])
+  }
+
+  const removeRow = (index: number) => {
+    if (value.length === 1) {
+      return
+    }
+
+    onChange(value.filter((_, itemIndex) => itemIndex !== index))
+  }
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="space-y-1">
+        <Label>Grade configuration</Label>
+        <p className="text-sm leading-6 text-slate-500">
+          Define the letter-grade bands on the fixed 0-100 internal score scale. Ranges must not overlap.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {value.map((grade, index) => (
+          <div
+            className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1.2fr_1fr_1fr_auto]"
+            key={`${grade.label}-${index}`}
+          >
+            <div className="space-y-2">
+              <Label htmlFor={`grade-label-${index}`}>Label</Label>
+              <Input
+                id={`grade-label-${index}`}
+                onChange={(event) => updateRow(index, { label: event.target.value })}
+                value={grade.label}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`grade-min-${index}`}>Minimum</Label>
+              <Input
+                id={`grade-min-${index}`}
+                max={100}
+                min={0}
+                onChange={(event) =>
+                  updateRow(index, {
+                    min: Number(event.target.value || 0),
+                  })
+                }
+                type="number"
+                value={grade.min}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`grade-max-${index}`}>Maximum</Label>
+              <Input
+                id={`grade-max-${index}`}
+                max={100}
+                min={0}
+                onChange={(event) =>
+                  updateRow(index, {
+                    max: Number(event.target.value || 0),
+                  })
+                }
+                type="number"
+                value={grade.max}
+              />
+            </div>
+
+            <div className="flex items-end">
+              <Button
+                className="w-full md:w-auto"
+                disabled={value.length === 1}
+                onClick={() => removeRow(index)}
+                type="button"
+                variant="outline"
+              >
+                <Trash2 className="size-4" />
+                Remove
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Button onClick={addRow} type="button" variant="outline">
+        <PlusCircle className="size-4" />
+        Add grade band
+      </Button>
+
+      <FieldError errors={errors} />
+    </div>
+  )
+}
+
 export function EventEditForm({ event }: EventEditFormProps) {
   const boundAction = updateEventAction.bind(null, event.id)
   const [state, formAction, isPending] = useActionState(boundAction, undefined)
   const formState = state ?? ({} as EventActionState)
   const successRef = useRef<HTMLDivElement>(null)
+  const [scoringType, setScoringType] = useState<'grade' | 'numeric'>(
+    event.scoring_type === 'grade' ? 'grade' : 'numeric'
+  )
+  const [gradeConfig, setGradeConfig] = useState<GradeConfigItem[]>(() =>
+    normalizeGradeConfig(event.grade_config)
+  )
 
   const teacherFields = getTeacherFieldsArray(event.teacher_fields)
 
@@ -66,8 +196,7 @@ export function EventEditForm({ event }: EventEditFormProps) {
       <CardHeader className="space-y-2">
         <CardTitle>Edit event metadata</CardTitle>
         <CardDescription>
-          Update the event configuration while it&apos;s still in draft. Publishing will lock
-          these settings.
+          Update the event configuration while it&apos;s still in draft. Publishing will lock these settings.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -111,15 +240,24 @@ export function EventEditForm({ event }: EventEditFormProps) {
 
             <div className="space-y-2">
               <Label htmlFor="edit-max-score">Maximum score</Label>
-              <Input
-                defaultValue={event.max_score}
-                id="edit-max-score"
-                max={1000}
-                min={1}
-                name="max_score"
-                type="number"
-              />
-              <FieldError errors={formState.errors?.max_score} />
+              {scoringType === 'numeric' ? (
+                <>
+                  <Input
+                    defaultValue={event.max_score}
+                    id="edit-max-score"
+                    max={1000}
+                    min={1}
+                    name="max_score"
+                    type="number"
+                  />
+                  <FieldError errors={formState.errors?.max_score} />
+                </>
+              ) : (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+                  Grade-based scoring uses a fixed internal 0-100 scale. Reviewers will choose one of the
+                  configured grade labels instead of entering a number.
+                </div>
+              )}
             </div>
           </div>
 
@@ -131,6 +269,14 @@ export function EventEditForm({ event }: EventEditFormProps) {
                 defaultValue={event.scoring_type}
                 id="edit-scoring-type"
                 name="scoring_type"
+                onChange={(event) => {
+                  const nextValue = event.target.value === 'grade' ? 'grade' : 'numeric'
+                  setScoringType(nextValue)
+
+                  if (nextValue === 'grade' && gradeConfig.length === 0) {
+                    setGradeConfig(defaultGradeConfig.map((item) => ({ ...item })))
+                  }
+                }}
               >
                 <option value="numeric">Numeric score</option>
                 <option value="grade">Letter grade</option>
@@ -153,6 +299,17 @@ export function EventEditForm({ event }: EventEditFormProps) {
               <FieldError errors={formState.errors?.expiration_date} />
             </div>
           </div>
+
+          {scoringType === 'grade' ? (
+            <>
+              <input name="grade_config" type="hidden" value={JSON.stringify(gradeConfig)} />
+              <GradeConfigEditor
+                errors={formState.errors?.grade_config}
+                onChange={setGradeConfig}
+                value={gradeConfig}
+              />
+            </>
+          ) : null}
 
           <div className="space-y-3">
             <div className="space-y-1">
@@ -215,15 +372,11 @@ export function EventEditForm({ event }: EventEditFormProps) {
             </div>
           ) : null}
 
-          <Button
-            className="h-11 w-full text-sm font-semibold"
-            disabled={isPending}
-            type="submit"
-          >
+          <Button className="h-11 w-full text-sm font-semibold" disabled={isPending} type="submit">
             {isPending ? (
               <>
                 <LoaderCircle className="size-4 animate-spin" />
-                Saving…
+                Saving...
               </>
             ) : (
               <>
