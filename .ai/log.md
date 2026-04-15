@@ -87,3 +87,19 @@
 **Validation**:
 - Ran `npm run type-check`
 - Ran `npm run lint`
+
+## [2026-04-15] feat | Session 1.6 Completed: Environment & Email Setup
+
+**Actor**: AI Agent
+**Changes**:
+- Added the Resend email service wrapper with runtime env validation and shared send helpers.
+- Created reusable email templates for teacher submission confirmations and reviewer assignment notifications.
+- Added a development-only `GET/POST /api/test-email` route for inspecting config state and sending sample emails.
+- Added `.env.example`, created a local `.env.local`, and updated `.gitignore` so the template stays committed while secrets remain local.
+- Replaced the deprecated `src/middleware.ts` convention with `src/proxy.ts` to match Next.js 16 guidance.
+- Rewrote `README.md` with project-specific setup and local email testing instructions.
+
+**Validation**:
+- Ran `npm run type-check`
+- Ran `npm run lint`
+- Ran `npm run build`

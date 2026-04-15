@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FormFlow
 
-## Getting Started
+FormFlow is a multi-layer form and review management system built with Next.js App Router, Supabase, and Resend.
 
-First, run the development server:
+## Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy `.env.example` to `.env.local`.
+
+3. Fill in the required environment variables:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=FormFlow <onboarding@resend.dev>
+RESEND_REPLY_TO_EMAIL=
+RESEND_TEST_EMAIL=
+```
+
+4. Start the local app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Email Testing
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Session 1.6 adds a development-only route at `/api/test-email`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `GET /api/test-email` returns configuration status and the available templates.
+- `POST /api/test-email` sends a sample email using the selected template.
 
-## Learn More
+Example request:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+curl -X POST http://localhost:3000/api/test-email ^
+  -H "Content-Type: application/json" ^
+  -d "{\"template\":\"submission-confirmation\",\"to\":\"you@example.com\"}"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+You can also omit `to` if `RESEND_TEST_EMAIL` is set in `.env.local`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Useful Commands
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run type-check
+```
