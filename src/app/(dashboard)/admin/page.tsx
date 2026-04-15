@@ -72,20 +72,20 @@ export default async function AdminPage() {
           <CardHeader>
             <CardTitle className="text-slate-50">Next build target</CardTitle>
             <CardDescription className="text-slate-300">
-              Session 2.1 can focus on event APIs without rebuilding dashboard chrome.
+              Session 2.1 is in place, so the next step is wiring the form builder into draft events.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <p className="text-sm font-semibold text-white">Ready now</p>
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                Protected admin routes, role-aware navigation, logout flow, and dashboard scaffolding.
+                Protected admin routes, role-aware navigation, draft event creation, and event inventory.
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
               <p className="text-sm font-semibold text-white">Coming next</p>
               <p className="mt-2 text-sm leading-6 text-slate-300">
-                Event CRUD backend, validation schemas, and the first real data surfaces.
+                The drag-and-drop form builder, preview flow, and draft schema editing.
               </p>
             </div>
           </CardContent>

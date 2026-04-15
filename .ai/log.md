@@ -116,3 +116,18 @@
 - Ran `npm run type-check`
 - Ran `npm run lint`
 - Sent a live test email successfully via `POST /api/test-email`
+
+## [2026-04-15] feat | Session 2.1 Completed: Event CRUD Foundation
+
+**Actor**: AI Agent
+**Changes**:
+- Added shared event validation and service modules covering admin authorization, event listing, event creation, share-slug generation, and transaction logging.
+- Implemented `GET /api/events` and `POST /api/events` with admin-only access, query/body validation, and PRD-aligned response shapes.
+- Replaced the `/admin/events` placeholder with a real event workspace that includes draft event creation, status filters, pagination, and event inventory cards.
+- Added a reusable `Textarea` UI primitive and a server-action-based create-event form following Next.js 16 server mutation patterns.
+- Updated the admin dashboard copy so the next milestone now points at the form builder instead of the previously pending event CRUD step.
+
+**Validation**:
+- Ran `npm run type-check`
+- Ran `npm run lint`
+- Ran `npm run build`
