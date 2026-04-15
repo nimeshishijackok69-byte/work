@@ -86,29 +86,29 @@ export async function POST(request: Request) {
     const result =
       template === 'reviewer-assignment'
         ? await sendReviewerAssignmentEmail({
-            assignmentCount: 3,
-            dueDateLabel: 'Friday at 5:00 PM',
-            eventTitle: 'District Excellence Awards',
-            layerName: 'Layer R1',
-            reviewUrl: 'http://localhost:3000/reviewer',
-            reviewerName: 'Jordan Reviewer',
-            to: recipient,
-          })
+          assignmentCount: 3,
+          dueDateLabel: 'Friday at 5:00 PM',
+          eventTitle: 'District Excellence Awards',
+          layerName: 'Layer R1',
+          reviewUrl: 'http://localhost:3000/reviewer',
+          reviewerName: 'Jordan Reviewer',
+          to: recipient,
+        })
         : await sendSubmissionConfirmationEmail({
-            eventTitle: 'District Excellence Awards',
-            submissionReference: 'FF-DEV-2026-0001',
-            submittedAtLabel: new Date().toLocaleString('en-IN', {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            }),
-            supportEmail: configuration.replyToEmail,
-            teacherName: 'Taylor Teacher',
-            to: recipient,
-          })
+          eventTitle: 'District Excellence Awards',
+          submissionReference: 'FF-DEV-2026-0001',
+          submittedAtLabel: new Date().toLocaleString('en-IN', {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }),
+          supportEmail: configuration.replyToEmail,
+          teacherName: 'Taylor Teacher',
+          to: recipient,
+        })
 
     return NextResponse.json({
       data: {
-        emailId,
+        emailId: result.id,
         template,
         to: recipient,
       },

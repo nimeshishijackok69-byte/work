@@ -31,10 +31,31 @@ const gridValuesSchema = z.array(trimmedString.min(1)).min(1)
 
 const shortAnswerFieldSchema = baseFieldSchema.extend({
   type: z.literal('short_answer'),
+  config: z
+    .object({
+      placeholder: trimmedString.max(120).optional(),
+    })
+    .default({}),
+  validation: z
+    .object({
+      maxLength: z.number().int().min(1).max(500).optional(),
+    })
+    .optional(),
 })
 
 const paragraphFieldSchema = baseFieldSchema.extend({
   type: z.literal('paragraph'),
+  config: z
+    .object({
+      placeholder: trimmedString.max(160).optional(),
+      rows: z.number().int().min(3).max(10).default(4),
+    })
+    .default({ rows: 4 }),
+  validation: z
+    .object({
+      maxLength: z.number().int().min(1).max(5000).optional(),
+    })
+    .optional(),
 })
 
 const multipleChoiceFieldSchema = baseFieldSchema.extend({
@@ -177,6 +198,9 @@ export function createDefaultField(type: FieldType): FormField {
         type,
         label: 'Untitled short answer',
         description: 'Add a short response prompt.',
+        config: {
+          placeholder: 'Type your answer',
+        },
         required: false,
       }
     case 'paragraph':
@@ -185,6 +209,10 @@ export function createDefaultField(type: FieldType): FormField {
         type,
         label: 'Untitled paragraph',
         description: 'Invite a longer written response.',
+        config: {
+          placeholder: 'Share your full response',
+          rows: 5,
+        },
         required: false,
       }
     case 'multiple_choice':

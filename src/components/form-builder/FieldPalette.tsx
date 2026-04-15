@@ -46,8 +46,8 @@ export function FieldPalette({
       <div>
         <h2 className="text-lg font-semibold text-slate-950">Field palette</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Add the next question type into the draft canvas. Detailed field-by-field polish can build
-          on top of this foundation next.
+          Add the next question type into the draft canvas, then use the settings panel to shape each
+          field&apos;s behavior and teacher-facing copy.
         </p>
       </div>
 

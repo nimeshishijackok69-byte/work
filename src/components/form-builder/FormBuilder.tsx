@@ -236,7 +236,7 @@ export function FormBuilder({
         <FieldConfigPanel
           isReadOnly={isReadOnly}
           onRemoveField={removeField}
-          onUpdateField={updateField}
+          onUpdateField={(field) => updateField(field.id, field)}
           selectedField={selectedField}
         />
       </div>

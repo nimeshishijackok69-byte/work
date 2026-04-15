@@ -167,3 +167,34 @@
 
 **Validation**:
 - Ran `npm run type-check` — passed.
+
+## [2026-04-15] chore | GitHub Progress Sync & Merge Conflict Resolution
+
+**Actor**: AI Agent
+**Changes**:
+- Synced local progress with GitHub and resolved merge conflicts across project docs, event management, form builder, and email setup.
+- Reconciled overlapping work so the event CRUD workspace, form builder infrastructure, test email route, validation helpers, and environment template updates all landed together.
+- Preserved the append-only project history in `.ai/log.md` while integrating the parallel streams of work.
+
+## [2026-04-15] fix | Email Template Configuration Cleanup
+
+**Actor**: AI Agent
+**Changes**:
+- Removed the legacy duplicate reviewer assignment email sender implementation and kept reviewer-assignment delivery flowing through the shared `sendEmail()` path in `src/lib/email/resend.ts`.
+- Tightened the reviewer-assignment email contract so the recipient address is explicit and the test-email route uses the current template prop shape.
+- Reduced duplicate email template configuration and cleaned up strict typing around the development email smoke-test flow.
+
+## [2026-04-15] feat | Sessions 2.4-2.5 Completed: Form Builder Field Configuration
+
+**Actor**: AI Agent
+**Changes**:
+- Extended the form schema model so short-answer and paragraph fields can persist builder-specific configuration like placeholders, visible rows, and optional character limits.
+- Replaced the temporary all-in-one field settings logic with dedicated field config components under `src/components/form-builder/fields/` for all 12 field types.
+- Completed the builder editing experience for basic fields: Short Answer, Paragraph, Dropdown, Date, Time, and Section Header.
+- Completed the builder editing experience for complex fields: Multiple Choice, Checkboxes, Linear Scale, Multiple Choice Grid, Checkbox Grid, and File Upload.
+- Upgraded the form builder canvas previews so each field type better reflects its configured teacher-facing behavior inside the admin builder.
+- Cleaned up pre-existing unused-symbol warnings in admin event pages while validating the builder changes.
+
+**Validation**:
+- Ran `npm run type-check` â€” passed.
+- Ran `npm run lint` â€” passed.

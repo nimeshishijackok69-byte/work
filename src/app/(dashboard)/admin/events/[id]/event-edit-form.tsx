@@ -30,15 +30,6 @@ function FieldError({ errors }: { errors?: string[] }) {
   return <p className="text-sm text-destructive">{errors[0]}</p>
 }
 
-function SubmitButton() {
-  return (
-    <Button className="h-11 w-full text-sm font-semibold" type="submit">
-      <Save className="size-4" />
-      Save changes
-    </Button>
-  )
-}
-
 function formatDateForInput(isoDate: string | null) {
   if (!isoDate) return ''
 

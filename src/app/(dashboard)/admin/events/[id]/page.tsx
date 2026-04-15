@@ -54,17 +54,6 @@ function formatRelativeDate(value: string) {
   return formatDate(value)
 }
 
-function getStatusClasses(status: string) {
-  switch (status) {
-    case 'published':
-      return 'border-emerald-200 bg-emerald-50 text-emerald-700'
-    case 'closed':
-      return 'border-slate-300 bg-slate-100 text-slate-700'
-    default:
-      return 'border-amber-200 bg-amber-50 text-amber-700'
-  }
-}
-
 function formatTeacherFields(value: unknown) {
   if (!Array.isArray(value)) return 'Not configured'
 

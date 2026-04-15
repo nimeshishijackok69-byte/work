@@ -1,27 +1,54 @@
 'use client'
 
-import { CircleAlert } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { type FormField } from '@/lib/forms/schema'
+import { fieldTypeLabels, type FormField } from '@/lib/forms/schema'
+import { CheckboxConfig } from './fields/CheckboxConfig'
+import { CheckboxGridConfig } from './fields/CheckboxGridConfig'
+import { DateConfig } from './fields/DateConfig'
+import { DropdownConfig } from './fields/DropdownConfig'
+import { FileUploadConfig } from './fields/FileUploadConfig'
+import { Hint, ToggleRow } from './fields/helpers'
+import { LinearScaleConfig } from './fields/LinearScaleConfig'
+import { MCGridConfig } from './fields/MCGridConfig'
+import { MultipleChoiceConfig } from './fields/MultipleChoiceConfig'
+import { ParagraphConfig } from './fields/ParagraphConfig'
+import { SectionHeaderConfig } from './fields/SectionHeaderConfig'
+import { ShortAnswerConfig } from './fields/ShortAnswerConfig'
+import { TimeConfig } from './fields/TimeConfig'
 
-function parseLines(value: string) {
-  return value
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-}
-
-function Hint({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm leading-6 text-sky-700">
-      <div className="flex items-start gap-2">
-        <CircleAlert className="mt-1 size-4 shrink-0" />
-        <div>{children}</div>
-      </div>
-    </div>
-  )
+function renderFieldSpecificConfig(
+  field: FormField,
+  disabled: boolean,
+  onChange: (field: FormField) => void
+) {
+  switch (field.type) {
+    case 'short_answer':
+      return <ShortAnswerConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'paragraph':
+      return <ParagraphConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'multiple_choice':
+      return <MultipleChoiceConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'checkboxes':
+      return <CheckboxConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'dropdown':
+      return <DropdownConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'file_upload':
+      return <FileUploadConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'linear_scale':
+      return <LinearScaleConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'multiple_choice_grid':
+      return <MCGridConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'checkbox_grid':
+      return <CheckboxGridConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'date':
+      return <DateConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'time':
+      return <TimeConfig disabled={disabled} field={field} onChange={onChange} />
+    case 'section_header':
+      return <SectionHeaderConfig disabled={disabled} field={field} onChange={onChange} />
+  }
 }
 
 export function FieldConfigPanel({
@@ -33,7 +60,7 @@ export function FieldConfigPanel({
   isReadOnly?: boolean
   selectedField: FormField | null
   onRemoveField: (id: string) => void
-  onUpdateField: (id: string, updates: Partial<FormField>) => void
+  onUpdateField: (field: FormField) => void
 }) {
   if (!selectedField) {
     return (
@@ -51,12 +78,16 @@ export function FieldConfigPanel({
       <div>
         <h2 className="text-lg font-semibold text-slate-950">Field settings</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          This panel handles the shared editing model for the builder. We can layer richer per-field
-          interactions on top of it in the next sessions.
+          Fine-tune this field&apos;s content and teacher-facing behavior before you save the draft schema.
         </p>
       </div>
 
       {isReadOnly ? <Hint>This event is no longer in draft, so the builder is now read-only.</Hint> : null}
+
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Field type</p>
+        <p className="mt-2 text-sm font-medium text-slate-900">{fieldTypeLabels[selectedField.type]}</p>
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="field-label">
@@ -65,7 +96,7 @@ export function FieldConfigPanel({
         <Input
           disabled={isReadOnly}
           id="field-label"
-          onChange={(event) => onUpdateField(selectedField.id, { label: event.target.value })}
+          onChange={(event) => onUpdateField({ ...selectedField, label: event.target.value })}
           value={selectedField.label}
         />
       </div>
@@ -76,7 +107,8 @@ export function FieldConfigPanel({
           disabled={isReadOnly}
           id="field-description"
           onChange={(event) =>
-            onUpdateField(selectedField.id, {
+            onUpdateField({
+              ...selectedField,
               description: event.target.value,
             })
           }
@@ -85,199 +117,15 @@ export function FieldConfigPanel({
       </div>
 
       {selectedField.type !== 'section_header' ? (
-        <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-          <input
-            checked={selectedField.required}
-            className="size-4"
-            disabled={isReadOnly}
-            onChange={(event) =>
-              onUpdateField(selectedField.id, {
-                required: event.target.checked,
-              })
-            }
-            type="checkbox"
-          />
-          <span>Require an answer before submission</span>
-        </label>
+        <ToggleRow
+          checked={selectedField.required}
+          disabled={isReadOnly}
+          label="Require an answer before submission"
+          onChange={(required) => onUpdateField({ ...selectedField, required })}
+        />
       ) : null}
 
-      {(selectedField.type === 'multiple_choice' ||
-        selectedField.type === 'checkboxes' ||
-        selectedField.type === 'dropdown') ? (
-        <div className="space-y-2">
-          <Label htmlFor="field-options">Options</Label>
-          <Textarea
-            disabled={isReadOnly}
-            id="field-options"
-            onChange={(event) =>
-              onUpdateField(selectedField.id, {
-                config: {
-                  options: parseLines(event.target.value).length
-                    ? parseLines(event.target.value)
-                    : ['Option 1'],
-                },
-              } as Partial<FormField>)
-            }
-            value={selectedField.config.options.join('\n')}
-          />
-          <p className="text-xs leading-5 text-slate-500">Use one line per option.</p>
-        </div>
-      ) : null}
-
-      {selectedField.type === 'linear_scale' ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="scale-min">Minimum value</Label>
-            <Input
-              disabled={isReadOnly}
-              id="scale-min"
-              min={0}
-              onChange={(event) =>
-                onUpdateField(selectedField.id, {
-                  config: {
-                    ...selectedField.config,
-                    min: Number(event.target.value) || 0,
-                  },
-                } as Partial<FormField>)
-              }
-              type="number"
-              value={selectedField.config.min}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="scale-max">Maximum value</Label>
-            <Input
-              disabled={isReadOnly}
-              id="scale-max"
-              min={1}
-              onChange={(event) =>
-                onUpdateField(selectedField.id, {
-                  config: {
-                    ...selectedField.config,
-                    max: Number(event.target.value) || 1,
-                  },
-                } as Partial<FormField>)
-              }
-              type="number"
-              value={selectedField.config.max}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="scale-min-label">Minimum label</Label>
-            <Input
-              disabled={isReadOnly}
-              id="scale-min-label"
-              onChange={(event) =>
-                onUpdateField(selectedField.id, {
-                  config: {
-                    ...selectedField.config,
-                    minLabel: event.target.value,
-                  },
-                } as Partial<FormField>)
-              }
-              value={selectedField.config.minLabel ?? ''}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="scale-max-label">Maximum label</Label>
-            <Input
-              disabled={isReadOnly}
-              id="scale-max-label"
-              onChange={(event) =>
-                onUpdateField(selectedField.id, {
-                  config: {
-                    ...selectedField.config,
-                    maxLabel: event.target.value,
-                  },
-                } as Partial<FormField>)
-              }
-              value={selectedField.config.maxLabel ?? ''}
-            />
-          </div>
-        </div>
-      ) : null}
-
-      {(selectedField.type === 'multiple_choice_grid' || selectedField.type === 'checkbox_grid') ? (
-        <div className="grid gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="grid-rows">Rows</Label>
-            <Textarea
-              disabled={isReadOnly}
-              id="grid-rows"
-              onChange={(event) =>
-                onUpdateField(selectedField.id, {
-                  config: {
-                    ...selectedField.config,
-                    rows: parseLines(event.target.value).length
-                      ? parseLines(event.target.value)
-                      : ['Row 1'],
-                  },
-                } as Partial<FormField>)
-              }
-              value={selectedField.config.rows.join('\n')}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="grid-columns">Columns</Label>
-            <Textarea
-              disabled={isReadOnly}
-              id="grid-columns"
-              onChange={(event) =>
-                onUpdateField(selectedField.id, {
-                  config: {
-                    ...selectedField.config,
-                    columns: parseLines(event.target.value).length
-                      ? parseLines(event.target.value)
-                      : ['Column 1'],
-                  },
-                } as Partial<FormField>)
-              }
-              value={selectedField.config.columns.join('\n')}
-            />
-          </div>
-        </div>
-      ) : null}
-
-      {selectedField.type === 'file_upload' ? (
-        <div className="grid gap-4">
-          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            <input
-              checked={selectedField.config.multiple}
-              className="size-4"
-              disabled={isReadOnly}
-              onChange={(event) =>
-                onUpdateField(selectedField.id, {
-                  config: {
-                    ...selectedField.config,
-                    multiple: event.target.checked,
-                    maxFiles: event.target.checked ? Math.max(selectedField.config.maxFiles, 2) : 1,
-                  },
-                } as Partial<FormField>)
-              }
-              type="checkbox"
-            />
-            <span>Allow multiple files</span>
-          </label>
-          <div className="space-y-2">
-            <Label htmlFor="max-files">Maximum files</Label>
-            <Input
-              disabled={isReadOnly}
-              id="max-files"
-              min={1}
-              onChange={(event) =>
-                onUpdateField(selectedField.id, {
-                  config: {
-                    ...selectedField.config,
-                    maxFiles: Number(event.target.value) || 1,
-                  },
-                } as Partial<FormField>)
-              }
-              type="number"
-              value={selectedField.config.maxFiles}
-            />
-          </div>
-        </div>
-      ) : null}
+      {renderFieldSpecificConfig(selectedField, isReadOnly, onUpdateField)}
 
       <button
         className="inline-flex items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
