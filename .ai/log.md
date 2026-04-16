@@ -213,4 +213,14 @@
 
 **Validation**:
 - Ran 
-pm run type-check — passed.
+pm run type-check ï¿½ passed.
+
+## [2026-04-16] fix | Supabase Local Seed/Auth Schema Compatibility
+
+**Actor**: AI Agent
+**Changes**:
+- Diagnosed local Supabase startup/login breakage caused by `supabase/seed.sql` referencing legacy `auth.users` columns (`app_metadata`, `user_metadata`) that may not exist in newer local stacks.
+- Reworked `supabase/seed.sql` to detect auth metadata column variants at runtime and insert into either legacy (`app_metadata` / `user_metadata`) or current (`raw_app_meta_data` / `raw_user_meta_data`) columns.
+- Updated seed bootstrap admin credentials to match documented local defaults: `admin@formflow.com` / `admin123`.
+- Replaced empty seeded password with a valid bcrypt hash using `crypt(..., gen_salt('bf'))` so Supabase `signInWithPassword()` can authenticate correctly.
+- Added README troubleshooting guidance for `db reset --debug`, schema mismatch root cause, and local verification steps.

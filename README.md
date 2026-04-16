@@ -87,6 +87,31 @@ npx supabase db reset
 # The seed.sql file creates an admin with email: admin@formflow.com, password: admin123
 ```
 
+### Supabase Startup Troubleshooting
+
+If local startup fails during migration/seed, run a full reset with debug logs:
+
+```bash
+npx.cmd -y supabase@latest db reset --debug
+```
+
+Common failure:
+- `ERROR: column "app_metadata" of relation "users" does not exist (SQLSTATE 42703)`
+
+Cause:
+- Different Supabase Auth versions expose metadata columns as either:
+  - `app_metadata` / `user_metadata` (older)
+  - `raw_app_meta_data` / `raw_user_meta_data` (current)
+
+Resolution in this project:
+- `supabase/seed.sql` now detects the available metadata column names at runtime and inserts into the correct columns.
+- The seed also writes a valid bcrypt password hash (`crypt(..., gen_salt('bf'))`) so `signInWithPassword()` works locally.
+
+Verification checklist:
+- `npx.cmd -y supabase@latest start` completes without seed errors.
+- `docker ps` shows Supabase service containers running.
+- Login works with seeded credentials: `admin@formflow.com` / `admin123`.
+
 ### 4. Run Development Server
 
 ```bash
