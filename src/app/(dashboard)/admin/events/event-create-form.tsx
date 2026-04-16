@@ -61,7 +61,7 @@ export function EventCreateForm() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-5" ref={formRef}>
+        <form action={formAction} className="space-y-5" noValidate ref={formRef}>
           <div className="space-y-2">
             <Label htmlFor="title">Event title</Label>
             <Input id="title" name="title" placeholder="Annual School Excellence Awards 2026" />

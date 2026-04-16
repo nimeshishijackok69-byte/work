@@ -200,7 +200,7 @@ export function EventEditForm({ event }: EventEditFormProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={formAction} className="space-y-5">
+        <form action={formAction} className="space-y-5" noValidate>
           <div className="space-y-2">
             <Label htmlFor="edit-title">Event title</Label>
             <Input
