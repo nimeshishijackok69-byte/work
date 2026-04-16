@@ -104,6 +104,10 @@ function normalizeOptionalDate(value: unknown) {
 }
 
 function normalizeGradeConfigInput(value: unknown) {
+  if (value == null) {
+    return undefined
+  }
+
   if (typeof value !== 'string') {
     return value
   }
@@ -150,16 +154,17 @@ export const eventCreateSchema = z
       .min(1, 'Use at least 1 review layer.')
       .max(10, 'Use 10 review layers or fewer.'),
     scoring_type: scoringTypeSchema,
-    grade_config: z.preprocess(normalizeGradeConfigInput, gradeConfigSchema).optional(),
+    grade_config: z.preprocess(normalizeGradeConfigInput, gradeConfigSchema.optional()),
     max_score: z.coerce
       .number()
       .int()
       .min(1, 'Maximum score must be at least 1.')
       .max(1000, 'Maximum score must be 1000 or less.')
       .optional(),
-    expiration_date: z
-      .preprocess(normalizeOptionalDate, z.string().datetime({ offset: true }))
-      .optional(),
+    expiration_date: z.preprocess(
+      normalizeOptionalDate,
+      z.string().datetime({ offset: true }).optional()
+    ),
     teacher_fields: z.array(teacherFieldSchema).default([...defaultTeacherFields]),
   })
   .superRefine((values, ctx) => {
@@ -241,17 +246,17 @@ export const eventUpdateSchema = z
       .max(10, 'Use 10 review layers or fewer.')
       .optional(),
     scoring_type: scoringTypeSchema.optional(),
-    grade_config: z.preprocess(normalizeGradeConfigInput, gradeConfigSchema).optional(),
+    grade_config: z.preprocess(normalizeGradeConfigInput, gradeConfigSchema.optional()),
     max_score: z.coerce
       .number()
       .int()
       .min(1, 'Maximum score must be at least 1.')
       .max(1000, 'Maximum score must be 1000 or less.')
       .optional(),
-    expiration_date: z
-      .preprocess(normalizeOptionalDate, z.string().datetime({ offset: true }))
-      .optional()
-      .nullable(),
+    expiration_date: z.preprocess(
+      normalizeOptionalDate,
+      z.string().datetime({ offset: true }).nullish()
+    ),
     teacher_fields: z.array(teacherFieldSchema).optional(),
   })
   .superRefine((values, ctx) => {
