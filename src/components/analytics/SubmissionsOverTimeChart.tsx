@@ -82,7 +82,10 @@ export function SubmissionsOverTimeChart({ data }: SubmissionsOverTimeChartProps
               boxShadow: '0 10px 30px -10px rgba(15,23,42,0.15)',
               padding: '10px 14px',
             }}
-            formatter={(value: number) => [`${value} submission${value === 1 ? '' : 's'}`, 'Count']}
+            formatter={(value) => {
+              const numeric = typeof value === 'number' ? value : Number(value) || 0
+              return [`${numeric} submission${numeric === 1 ? '' : 's'}`, 'Count']
+            }}
             labelFormatter={(label) => label}
           />
           <Area

@@ -3,9 +3,25 @@ import { auth } from '@/lib/auth/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { Database } from '@/types/database'
 import { registerSchema } from '@/lib/validations/auth'
+import { checkRateLimit, getClientIp } from '@/lib/utils/rate-limit'
+import { logger } from '@/lib/utils/logger'
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request)
+    const rate = checkRateLimit({
+      bucket: 'auth-register',
+      identifier: ip,
+      max: 5,
+      windowMs: 60_000,
+    })
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please wait and try again.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      )
+    }
+
     const body = await request.json()
     const validatedFields = registerSchema.safeParse(body)
 
@@ -27,7 +43,7 @@ export async function POST(request: Request) {
       .select('id', { count: 'exact', head: true })
 
     if (adminCountError) {
-      console.error('[AUTH_REGISTER] Failed to count admin profiles', adminCountError)
+      logger.error('auth.register.count_admins_failed', adminCountError)
       return NextResponse.json(
         { error: 'Unable to verify registration permissions.' },
         { status: 500 }
@@ -67,7 +83,7 @@ export async function POST(request: Request) {
     })
 
     if (createUserError || !createdUser.user) {
-      console.error('[AUTH_REGISTER] Failed to create auth user', createUserError)
+      logger.error('auth.register.create_user_failed', createUserError)
       return NextResponse.json(
         { error: createUserError?.message ?? 'Unable to create the account.' },
         { status: 400 }
@@ -88,7 +104,7 @@ export async function POST(request: Request) {
 
       if (insertAdminError) {
         await supabase.auth.admin.deleteUser(createdUser.user.id)
-        console.error('[AUTH_REGISTER] Failed to create admin profile', insertAdminError)
+        logger.error('auth.register.insert_admin_failed', insertAdminError)
         return NextResponse.json(
           { error: 'Unable to create the admin profile.' },
           { status: 500 }
@@ -110,7 +126,7 @@ export async function POST(request: Request) {
 
       if (insertReviewerError) {
         await supabase.auth.admin.deleteUser(createdUser.user.id)
-        console.error('[AUTH_REGISTER] Failed to create reviewer profile', insertReviewerError)
+        logger.error('auth.register.insert_reviewer_failed', insertReviewerError)
         return NextResponse.json(
           { error: 'Unable to create the reviewer profile.' },
           { status: 500 }
@@ -129,7 +145,7 @@ export async function POST(request: Request) {
       { status: 201 }
     )
   } catch (error) {
-    console.error('[AUTH_REGISTER]', error)
+    logger.error('auth.register.unexpected', error)
     return NextResponse.json(
       { error: 'Something went wrong while creating the account.' },
       { status: 500 }

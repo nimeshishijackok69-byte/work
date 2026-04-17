@@ -9,27 +9,8 @@ import {
 } from '@/lib/submissions/service'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { submissionRequestSchema, buildFormResponseSchema } from '@/lib/validations/submissions'
-
-/* ------------------------------------------------------------------ */
-/*  Simple in-memory rate limiter                                     */
-/* ------------------------------------------------------------------ */
-
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT_WINDOW_MS = 60_000 // 1 minute
-const RATE_LIMIT_MAX = 10 // max 10 submissions per IP per minute
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(ip)
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
-    return false
-  }
-
-  entry.count += 1
-  return entry.count > RATE_LIMIT_MAX
-}
+import { checkRateLimit, getClientIp } from '@/lib/utils/rate-limit'
+import { logger } from '@/lib/utils/logger'
 
 /* ------------------------------------------------------------------ */
 /*  POST /api/submissions                                             */
@@ -37,13 +18,20 @@ function isRateLimited(ip: string): boolean {
 
 export async function POST(request: Request) {
   try {
-    // Rate limiting
-    const forwarded = request.headers.get('x-forwarded-for')
-    const ip = forwarded?.split(',')[0]?.trim() ?? 'unknown'
-    if (isRateLimited(ip)) {
+    const ip = getClientIp(request)
+    const rate = checkRateLimit({
+      bucket: 'submissions',
+      identifier: ip,
+      max: 10,
+      windowMs: 60_000,
+    })
+    if (!rate.allowed) {
       return NextResponse.json(
         { error: 'Too many submissions. Please wait a moment before trying again.' },
-        { status: 429 }
+        {
+          status: 429,
+          headers: { 'Retry-After': String(rate.retryAfterSeconds) },
+        }
       )
     }
 
@@ -106,7 +94,7 @@ export async function POST(request: Request) {
           teacherName: teacherInfo.name,
         })
       } catch (e) {
-        console.error('[API] Failed to send draft resume email', e)
+        logger.error('submissions.draft_email_failed', e)
         // do not fail draft creation if email fails
       }
 
@@ -155,7 +143,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 410 })
     }
 
-    console.error('[API] POST /api/submissions', error)
+    logger.error('submissions.post_failed', error)
     return NextResponse.json({ error: 'Unable to process your submission.' }, { status: 500 })
   }
 }

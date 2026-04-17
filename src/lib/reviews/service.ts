@@ -393,17 +393,18 @@ export async function updateReviewerForAdmin(
   input: UpdateReviewerInput
 ): Promise<ReviewerRow> {
   const { supabase } = context
-  const { data: existingReviewer, error: existingReviewerError } = await supabase
+  const existingReviewerQuery = await supabase
     .from('reviewer_master')
     .select('*')
     .eq('id', reviewerId)
-    .maybeSingle()
+    .maybeSingle<ReviewerRow>()
 
-  if (existingReviewerError) {
-    console.error('[REVIEWS] Failed to load reviewer for update', existingReviewerError)
+  if (existingReviewerQuery.error) {
+    console.error('[REVIEWS] Failed to load reviewer for update', existingReviewerQuery.error)
     throw new Error('Unable to update the reviewer right now.')
   }
 
+  const existingReviewer = existingReviewerQuery.data
   if (!existingReviewer) {
     throw new ReviewerNotFoundError()
   }
@@ -595,7 +596,7 @@ export async function assignReviewsForAdmin(
   const { admin, supabase } = context
   const submissionIds = unique(input.assignments.map((assignment) => assignment.submission_id))
   const reviewerIds = unique(input.assignments.map((assignment) => assignment.reviewer_id))
-  const layers = unique(input.assignments.map((assignment) => assignment.layer))
+  const layers = Array.from(new Set(input.assignments.map((assignment) => assignment.layer)))
 
   const [submissionResult, reviewerResult, existingResult] = await Promise.all([
     supabase.from('submission').select('*').in('id', submissionIds).eq('event_id', event.id),
