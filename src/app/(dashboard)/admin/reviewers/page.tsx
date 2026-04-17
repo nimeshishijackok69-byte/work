@@ -7,6 +7,7 @@ import { listReviewersForAdmin, type ReviewerListItem } from '@/lib/reviews/serv
 import { requireAdminContext } from '@/lib/events/service'
 import { toggleReviewerActiveAction } from './actions'
 import { ReviewerCreateForm } from './reviewer-create-form'
+import { ReviewerEditForm } from './reviewer-edit-form'
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-IN', {
@@ -70,11 +71,56 @@ function ReviewerCard({ item }: { item: ReviewerListItem }) {
           </p>
         </div>
 
-        <form action={toggleAction}>
-          <Button type="submit" variant={item.reviewer.is_active ? 'destructive' : 'outline'}>
-            {item.reviewer.is_active ? 'Deactivate reviewer' : 'Reactivate reviewer'}
-          </Button>
-        </form>
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-950">Edit reviewer profile</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Update contact details, specialization, or rotate the temporary password.
+              </p>
+            </div>
+            <ReviewerEditForm reviewer={item.reviewer} />
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-950">Recent assignment history</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Latest review queue activity for this reviewer.
+              </p>
+            </div>
+
+            {item.recentAssignments.length ? (
+              <div className="grid gap-3">
+                {item.recentAssignments.map((assignment) => (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4" key={assignment.assignmentId}>
+                    <p className="text-sm font-semibold text-slate-950">{assignment.eventTitle}</p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Submission #{assignment.submissionNumber || 'N/A'} · Layer {assignment.layer}
+                    </p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      {assignment.status.replaceAll('_', ' ')}
+                    </p>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Assigned {formatDate(assignment.assignedAt)}
+                      {assignment.completedAt ? ` · Completed ${formatDate(assignment.completedAt)}` : ''}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                No assignment history yet for this reviewer.
+              </div>
+            )}
+
+            <form action={toggleAction}>
+              <Button type="submit" variant={item.reviewer.is_active ? 'destructive' : 'outline'}>
+                {item.reviewer.is_active ? 'Deactivate reviewer' : 'Reactivate reviewer'}
+              </Button>
+            </form>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

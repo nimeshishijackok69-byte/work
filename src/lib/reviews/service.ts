@@ -25,6 +25,19 @@ export interface ReviewerListItem {
   completedAssignments: number
   pendingAssignments: number
   totalAssignments: number
+  recentAssignments: ReviewerAssignmentHistoryItem[]
+}
+
+export interface ReviewerAssignmentHistoryItem {
+  assignmentId: string
+  assignedAt: string
+  completedAt: string | null
+  eventId: string
+  eventTitle: string
+  layer: number
+  status: string
+  submissionId: string
+  submissionNumber: number
 }
 
 export interface AdminSubmissionReviewRecord {
@@ -42,15 +55,40 @@ export interface AdminEventSubmissionRecord {
   teacher: TeacherRow | null
   currentLayerAssignments: AdminSubmissionAssignmentRecord[]
   currentLayerReviews: AdminSubmissionReviewRecord[]
-  latestAssignments: AdminSubmissionAssignmentRecord[]
+  assignmentHistory: AdminSubmissionAssignmentRecord[]
   nextAssignableLayer: number | null
+  displayStatus: ReviewWorkspaceStatus
+  layerProgress: SubmissionLayerProgress[]
+  responseDetails: SubmissionResponseItem[]
+  attachments: SubmissionAttachmentItem[]
 }
 
 export interface EventReviewWorkspace {
   event: EventRow
   reviewers: ReviewerListItem[]
   submissions: AdminEventSubmissionRecord[]
+  availableLayers: number[]
+  counts: Record<ReviewWorkspaceStatus | 'all', number>
+  page: number
+  limit: number
+  total: number
 }
+
+export interface EventReviewWorkspaceQuery {
+  layer?: number
+  limit: number
+  page: number
+  q?: string
+  status?: ReviewWorkspaceStatus
+}
+
+export type ReviewWorkspaceStatus =
+  | 'draft'
+  | 'submitted'
+  | 'in_review'
+  | 'reviewed'
+  | 'advanced'
+  | 'eliminated'
 
 export interface ReviewerAssignmentListItem {
   assignment: AssignmentRow
@@ -58,6 +96,7 @@ export interface ReviewerAssignmentListItem {
   submission: SubmissionRow | null
   teacher: TeacherRow | null
   review: ReviewRow | null
+  displayStatus: ReviewerAssignmentStatus
 }
 
 export interface ReviewerAssignmentDetail {
@@ -69,11 +108,41 @@ export interface ReviewerAssignmentDetail {
   submittedReview: ReviewRow | null
 }
 
+export interface ReviewerAssignmentsListResult {
+  assignments: ReviewerAssignmentListItem[]
+  availableEvents: Array<{ id: string; title: string }>
+  availableLayers: number[]
+  counts: Record<ReviewerAssignmentStatus | 'all', number>
+  limit: number
+  page: number
+  total: number
+}
+
+export interface ReviewerAssignmentsQuery {
+  event_id?: string
+  layer?: number
+  limit: number
+  page: number
+  q?: string
+  status?: ReviewerAssignmentStatus
+}
+
+export type ReviewerAssignmentStatus = 'pending' | 'in_progress' | 'completed'
+
 export interface CreateReviewerInput {
   department?: string
   email: string
   name: string
   password: string
+  phone?: string
+  specialization?: string
+}
+
+export interface UpdateReviewerInput {
+  department?: string
+  email: string
+  name: string
+  password?: string
   phone?: string
   specialization?: string
 }
@@ -100,6 +169,25 @@ export interface AdvanceSubmissionsInput {
   eliminate: string[]
   event_id: string
   layer: number
+}
+
+export interface SubmissionLayerProgress {
+  completedAssignments: number
+  isCurrentLayer: boolean
+  layer: number
+  reviewValues: string[]
+  totalAssignments: number
+}
+
+export interface SubmissionResponseItem {
+  label: string
+  type: string
+  value: string
+}
+
+export interface SubmissionAttachmentItem {
+  fileName: string
+  fileUrl: string
 }
 
 export class ReviewerAccessError extends Error {
@@ -171,48 +259,60 @@ export async function listReviewersForAdmin(
   context: AdminContext
 ): Promise<ReviewerListItem[]> {
   const { supabase } = context
+  const [reviewersResult, assignmentsResult] = await Promise.all([
+    supabase.from('reviewer_master').select('*').order('created_at', { ascending: false }),
+    supabase.from('review_assignment').select('*').order('assigned_at', { ascending: false }),
+  ])
 
-  const { data, error } = await supabase
-    .from('reviewer_master')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    console.error('[REVIEWS] Failed to load reviewers', error)
+  if (reviewersResult.error) {
+    console.error('[REVIEWS] Failed to load reviewers', reviewersResult.error)
     throw new Error('Unable to load reviewers right now.')
   }
 
-  const reviewers = ((data as ReviewerRow[] | null) ?? []).filter(Boolean)
+  if (assignmentsResult.error) {
+    console.error('[REVIEWS] Failed to load reviewer assignments', assignmentsResult.error)
+    throw new Error('Unable to load reviewer history right now.')
+  }
 
-  const workload = await Promise.all(
-    reviewers.map(async (reviewer) => {
-      const [totalResult, pendingResult, completedResult] = await Promise.all([
-        supabase
-          .from('review_assignment')
-          .select('id', { count: 'exact', head: true })
-          .eq('reviewer_id', reviewer.id),
-        supabase
-          .from('review_assignment')
-          .select('id', { count: 'exact', head: true })
-          .eq('reviewer_id', reviewer.id)
-          .in('status', ['pending', 'in_progress']),
-        supabase
-          .from('review_assignment')
-          .select('id', { count: 'exact', head: true })
-          .eq('reviewer_id', reviewer.id)
-          .eq('status', 'completed'),
-      ])
-
-      return {
-        reviewer,
-        completedAssignments: completedResult.count ?? 0,
-        pendingAssignments: pendingResult.count ?? 0,
-        totalAssignments: totalResult.count ?? 0,
-      }
-    })
+  const reviewers = ((reviewersResult.data as ReviewerRow[] | null) ?? []).filter(Boolean)
+  const assignments = (assignmentsResult.data as AssignmentRow[] | null) ?? []
+  const assignmentsByReviewer = groupBy(assignments, (assignment) => assignment.reviewer_id)
+  const eventMap = await loadEventsByIds(
+    supabase,
+    assignments.map((assignment) => assignment.event_id)
+  )
+  const submissionMap = await loadSubmissionsByIds(
+    supabase,
+    assignments.map((assignment) => assignment.submission_id)
   )
 
-  return workload
+  return reviewers.map((reviewer) => {
+    const reviewerAssignments = assignmentsByReviewer.get(reviewer.id) ?? []
+    const completedAssignments = reviewerAssignments.filter(
+      (assignment) => assignment.status === 'completed'
+    ).length
+    const pendingAssignments = reviewerAssignments.filter((assignment) =>
+      ['pending', 'in_progress'].includes(assignment.status)
+    ).length
+
+    return {
+      reviewer,
+      completedAssignments,
+      pendingAssignments,
+      totalAssignments: reviewerAssignments.length,
+      recentAssignments: reviewerAssignments.slice(0, 5).map((assignment) => ({
+        assignmentId: assignment.id,
+        assignedAt: assignment.assigned_at,
+        completedAt: assignment.completed_at,
+        eventId: assignment.event_id,
+        eventTitle: eventMap.get(assignment.event_id)?.title || 'Untitled event',
+        layer: assignment.layer,
+        status: assignment.status,
+        submissionId: assignment.submission_id,
+        submissionNumber: submissionMap.get(assignment.submission_id)?.submission_number ?? 0,
+      })),
+    }
+  })
 }
 
 export async function createReviewerForAdmin(
@@ -286,9 +386,80 @@ export async function setReviewerActiveStateForAdmin(
   return data as ReviewerRow
 }
 
+export async function updateReviewerForAdmin(
+  context: AdminContext,
+  reviewerId: string,
+  input: UpdateReviewerInput
+): Promise<ReviewerRow> {
+  const { supabase } = context
+  const { data: existingReviewer, error: existingReviewerError } = await supabase
+    .from('reviewer_master')
+    .select('*')
+    .eq('id', reviewerId)
+    .maybeSingle()
+
+  if (existingReviewerError) {
+    console.error('[REVIEWS] Failed to load reviewer for update', existingReviewerError)
+    throw new Error('Unable to update the reviewer right now.')
+  }
+
+  if (!existingReviewer) {
+    throw new ReviewerNotFoundError()
+  }
+
+  const authUpdatePayload: Parameters<typeof supabase.auth.admin.updateUserById>[1] = {
+    email: input.email,
+    user_metadata: {
+      name: input.name,
+      role: 'reviewer',
+    },
+  }
+
+  if (input.password) {
+    authUpdatePayload.password = input.password
+  }
+
+  const { error: authUpdateError } = await supabase.auth.admin.updateUserById(
+    existingReviewer.auth_user_id,
+    authUpdatePayload
+  )
+
+  if (authUpdateError) {
+    console.error('[REVIEWS] Failed to update reviewer auth user', authUpdateError)
+    throw new ReviewValidationError(authUpdateError.message || 'Unable to update the reviewer login.')
+  }
+
+  const reviewerUpdate: Database['public']['Tables']['reviewer_master']['Update'] = {
+    department: input.department ?? null,
+    email: input.email,
+    name: input.name,
+    phone: input.phone ?? null,
+    specialization: input.specialization ?? null,
+  }
+
+  const { data, error } = await supabase
+    .from('reviewer_master')
+    .update(reviewerUpdate as never)
+    .eq('id', reviewerId)
+    .select('*')
+    .maybeSingle()
+
+  if (error) {
+    console.error('[REVIEWS] Failed to update reviewer profile', error)
+    throw new Error('Unable to update the reviewer profile right now.')
+  }
+
+  if (!data) {
+    throw new ReviewerNotFoundError()
+  }
+
+  return data as ReviewerRow
+}
+
 export async function getEventReviewWorkspaceForAdmin(
   context: AdminContext,
-  eventId: string
+  eventId: string,
+  query: EventReviewWorkspaceQuery
 ): Promise<EventReviewWorkspace | null> {
   const event = await getEventForAdmin(context, eventId)
 
@@ -303,8 +474,7 @@ export async function getEventReviewWorkspaceForAdmin(
       .from('submission')
       .select('*')
       .eq('event_id', eventId)
-      .eq('status', 'submitted')
-      .order('submitted_at', { ascending: false }),
+      .order('submitted_at', { ascending: false, nullsFirst: false }),
     supabase
       .from('review_assignment')
       .select('*')
@@ -354,11 +524,11 @@ export async function getEventReviewWorkspaceForAdmin(
       (assignment) => assignment.layer === currentLayer
     )
     const currentLayerReviews = submissionReviews.filter((review) => review.layer === currentLayer)
-    const latestAssignments = submissionAssignments.slice(0, 5)
+    const teacher = teachers.get(submission.user_id) ?? null
 
     return {
       submission,
-      teacher: teachers.get(submission.user_id) ?? null,
+      teacher,
       currentLayerAssignments: currentLayerAssignments.map((assignment) => ({
         assignment,
         reviewer: reviewersById.get(assignment.reviewer_id) ?? null,
@@ -367,18 +537,39 @@ export async function getEventReviewWorkspaceForAdmin(
         review,
         reviewer: reviewersById.get(review.reviewer_id) ?? null,
       })),
-      latestAssignments: latestAssignments.map((assignment) => ({
+      assignmentHistory: submissionAssignments.map((assignment) => ({
         assignment,
         reviewer: reviewersById.get(assignment.reviewer_id) ?? null,
       })),
+      displayStatus: getSubmissionDisplayStatus(submission),
+      layerProgress: getSubmissionLayerProgress(
+        event,
+        submission,
+        submissionAssignments,
+        submissionReviews
+      ),
+      responseDetails: getSubmissionResponseDetails(event, submission),
+      attachments: getSubmissionAttachments(submission.file_attachments),
       nextAssignableLayer: getNextAssignableLayer(submission, event.review_layers),
     }
   })
 
+  const counts = getSubmissionCounts(submissionRecords)
+  const filteredSubmissions = submissionRecords.filter((record) =>
+    matchesSubmissionFilters(record, query)
+  )
+  const startIndex = (query.page - 1) * query.limit
+  const paginatedSubmissions = filteredSubmissions.slice(startIndex, startIndex + query.limit)
+
   return {
     event,
     reviewers,
-    submissions: submissionRecords,
+    submissions: paginatedSubmissions,
+    availableLayers: getAvailableSubmissionLayers(submissionRecords),
+    counts,
+    page: query.page,
+    limit: query.limit,
+    total: filteredSubmissions.length,
   }
 }
 
@@ -560,8 +751,9 @@ export async function assignReviewsForAdmin(
 }
 
 export async function listAssignmentsForReviewer(
-  context: ReviewerContext
-): Promise<ReviewerAssignmentListItem[]> {
+  context: ReviewerContext,
+  query: ReviewerAssignmentsQuery
+): Promise<ReviewerAssignmentsListResult> {
   const { reviewer, supabase } = context
   const { data, error } = await supabase
     .from('review_assignment')
@@ -592,7 +784,7 @@ export async function listAssignmentsForReviewer(
     Array.from(submissions.values()).map((submission) => submission.user_id)
   )
 
-  return assignments.map((assignment) => {
+  const records = assignments.map((assignment) => {
     const submission = submissions.get(assignment.submission_id) ?? null
 
     return {
@@ -601,8 +793,27 @@ export async function listAssignmentsForReviewer(
       submission,
       teacher: submission ? teachers.get(submission.user_id) ?? null : null,
       review: reviews.get(assignment.id) ?? null,
+      displayStatus: normalizeReviewerAssignmentStatus(assignment.status),
     }
   })
+
+  const filteredAssignments = records.filter((record) => matchesReviewerAssignmentFilters(record, query))
+  const startIndex = (query.page - 1) * query.limit
+  const paginatedAssignments = filteredAssignments.slice(startIndex, startIndex + query.limit)
+
+  return {
+    assignments: paginatedAssignments,
+    availableEvents: Array.from(events.values())
+      .map((event) => ({ id: event.id, title: event.title }))
+      .sort((left, right) => left.title.localeCompare(right.title)),
+    availableLayers: Array.from(
+      new Set(records.map((record) => record.assignment.layer).filter((layer) => layer > 0))
+    ).sort((left, right) => left - right),
+    counts: getReviewerAssignmentCounts(records),
+    limit: query.limit,
+    page: query.page,
+    total: filteredAssignments.length,
+  }
 }
 
 export async function getReviewerAssignmentDetail(
@@ -626,7 +837,7 @@ export async function getReviewerAssignmentDetail(
     return null
   }
 
-  const assignment = data as AssignmentRow
+  const assignment = await markAssignmentInProgressIfNeeded(supabase, data as AssignmentRow, reviewer.id)
   const [event, submission, submittedReview, previousReviews] = await Promise.all([
     loadEventById(supabase, assignment.event_id),
     loadSubmissionById(supabase, assignment.submission_id),
@@ -869,6 +1080,49 @@ export async function advanceSubmissionsForAdmin(
       })
     ),
   ])
+}
+
+export async function applySubmissionDecisionBatchForAdmin(
+  context: AdminContext,
+  eventId: string,
+  submissionIds: string[],
+  decision: 'advance' | 'eliminate'
+): Promise<void> {
+  const uniqueSubmissionIds = unique(submissionIds)
+
+  if (!uniqueSubmissionIds.length) {
+    throw new ReviewValidationError('Select at least one submission first.')
+  }
+
+  const { supabase } = context
+  const { data, error } = await supabase
+    .from('submission')
+    .select('*')
+    .eq('event_id', eventId)
+    .in('id', uniqueSubmissionIds)
+
+  if (error) {
+    console.error('[REVIEWS] Failed to load submissions for bulk decision', error)
+    throw new Error('Unable to update the selected submissions right now.')
+  }
+
+  const submissions = (data as SubmissionRow[] | null) ?? []
+
+  if (submissions.length !== uniqueSubmissionIds.length) {
+    throw new ReviewValidationError('One or more selected submissions were not found.')
+  }
+
+  const submissionsByLayer = groupBy(submissions, (submission) => String(submission.current_layer))
+
+  for (const [layerKey, layerSubmissions] of submissionsByLayer.entries()) {
+    const layer = Number(layerKey)
+    await advanceSubmissionsForAdmin(context, {
+      event_id: eventId,
+      layer,
+      advance: decision === 'advance' ? layerSubmissions.map((submission) => submission.id) : [],
+      eliminate: decision === 'eliminate' ? layerSubmissions.map((submission) => submission.id) : [],
+    })
+  }
 }
 
 function buildReviewPayload(event: EventRow, input: SubmitReviewInput) {
@@ -1128,6 +1382,256 @@ async function logTransaction(supabase: SupabaseAdminClient, input: TransactionI
 
   if (error) {
     console.error('[REVIEWS] Failed to write transaction log', error)
+  }
+}
+
+async function markAssignmentInProgressIfNeeded(
+  supabase: SupabaseAdminClient,
+  assignment: AssignmentRow,
+  reviewerId: string
+) {
+  if (assignment.status !== 'pending') {
+    return assignment
+  }
+
+  const { error } = await supabase
+    .from('review_assignment')
+    .update({
+      status: 'in_progress',
+    } as never)
+    .eq('id', assignment.id)
+    .eq('reviewer_id', reviewerId)
+    .eq('status', 'pending')
+
+  if (error) {
+    console.error('[REVIEWS] Failed to mark assignment in progress', error)
+    return assignment
+  }
+
+  await logTransaction(supabase, {
+    action: `review_started_r${assignment.layer}`,
+    actor_id: reviewerId,
+    actor_type: 'reviewer',
+    event_id: assignment.event_id,
+    submission_id: assignment.submission_id,
+    metadata: {
+      assignment_id: assignment.id,
+      layer: assignment.layer,
+    },
+  })
+
+  return {
+    ...assignment,
+    status: 'in_progress',
+  }
+}
+
+function normalizeReviewerAssignmentStatus(status: string): ReviewerAssignmentStatus {
+  if (status === 'completed') {
+    return 'completed'
+  }
+
+  if (status === 'in_progress') {
+    return 'in_progress'
+  }
+
+  return 'pending'
+}
+
+function getSubmissionDisplayStatus(submission: SubmissionRow): ReviewWorkspaceStatus {
+  if (submission.status === 'draft') {
+    return 'draft'
+  }
+
+  if (submission.review_status === 'in_review') {
+    return 'in_review'
+  }
+
+  if (submission.review_status === 'reviewed') {
+    return 'reviewed'
+  }
+
+  if (submission.review_status === 'advanced') {
+    return 'advanced'
+  }
+
+  if (submission.review_status === 'eliminated') {
+    return 'eliminated'
+  }
+
+  return 'submitted'
+}
+
+function getSubmissionCounts(records: AdminEventSubmissionRecord[]) {
+  return records.reduce<Record<ReviewWorkspaceStatus | 'all', number>>(
+    (counts, record) => {
+      counts.all += 1
+      counts[record.displayStatus] += 1
+      return counts
+    },
+    {
+      all: 0,
+      advanced: 0,
+      draft: 0,
+      eliminated: 0,
+      in_review: 0,
+      reviewed: 0,
+      submitted: 0,
+    }
+  )
+}
+
+function getReviewerAssignmentCounts(records: ReviewerAssignmentListItem[]) {
+  return records.reduce<Record<ReviewerAssignmentStatus | 'all', number>>(
+    (counts, record) => {
+      counts.all += 1
+      counts[record.displayStatus] += 1
+      return counts
+    },
+    {
+      all: 0,
+      completed: 0,
+      in_progress: 0,
+      pending: 0,
+    }
+  )
+}
+
+function getAvailableSubmissionLayers(records: AdminEventSubmissionRecord[]) {
+  return Array.from(
+    new Set(records.map((record) => record.submission.current_layer).filter((layer) => layer > 0))
+  ).sort((left, right) => left - right)
+}
+
+function matchesSubmissionFilters(
+  record: AdminEventSubmissionRecord,
+  query: EventReviewWorkspaceQuery
+) {
+  if (query.status && record.displayStatus !== query.status) {
+    return false
+  }
+
+  if (query.layer && record.submission.current_layer !== query.layer) {
+    return false
+  }
+
+  if (!query.q) {
+    return true
+  }
+
+  const searchTerm = query.q.toLowerCase()
+  const searchableParts = [
+    record.submission.id,
+    String(record.submission.submission_number),
+    record.teacher?.name,
+    record.teacher?.email,
+    record.teacher?.school_name,
+  ]
+
+  return searchableParts.some((part) => part?.toLowerCase().includes(searchTerm))
+}
+
+function matchesReviewerAssignmentFilters(
+  record: ReviewerAssignmentListItem,
+  query: ReviewerAssignmentsQuery
+) {
+  if (query.status && record.displayStatus !== query.status) {
+    return false
+  }
+
+  if (query.layer && record.assignment.layer !== query.layer) {
+    return false
+  }
+
+  if (query.event_id && record.assignment.event_id !== query.event_id) {
+    return false
+  }
+
+  if (!query.q) {
+    return true
+  }
+
+  const searchTerm = query.q.toLowerCase()
+  const searchableParts = [
+    record.assignment.id,
+    record.event?.title,
+    record.teacher?.name,
+    record.teacher?.email,
+    record.teacher?.school_name,
+    record.submission ? String(record.submission.submission_number) : undefined,
+  ]
+
+  return searchableParts.some((part) => part?.toLowerCase().includes(searchTerm))
+}
+
+function getSubmissionLayerProgress(
+  event: EventRow,
+  submission: SubmissionRow,
+  assignments: AssignmentRow[],
+  reviews: ReviewRow[]
+): SubmissionLayerProgress[] {
+  const assignmentsByLayer = groupBy(assignments, (assignment) => String(assignment.layer))
+  const reviewsByLayer = groupBy(reviews, (review) => String(review.layer))
+
+  return Array.from({ length: event.review_layers }, (_, index) => {
+    const layer = index + 1
+    const layerAssignments = assignmentsByLayer.get(String(layer)) ?? []
+    const layerReviews = reviewsByLayer.get(String(layer)) ?? []
+
+    return {
+      completedAssignments: layerAssignments.filter((assignment) => assignment.status === 'completed').length,
+      isCurrentLayer: submission.current_layer === layer,
+      layer,
+      reviewValues: layerReviews.map((review) => formatReviewValue(event, review)),
+      totalAssignments: layerAssignments.length,
+    }
+  })
+}
+
+function getSubmissionResponseDetails(
+  event: EventRow,
+  submission: SubmissionRow
+): SubmissionResponseItem[] {
+  return getSubmissionResponses(event, submission).map((response) => ({
+    label: response.label,
+    type: response.type,
+    value: renderJsonValue(response.value),
+  }))
+}
+
+function getSubmissionAttachments(value: Json): SubmissionAttachmentItem[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter(
+      (item): item is { file_name?: string; file_url?: string } =>
+        typeof item === 'object' && item !== null
+    )
+    .map((item) => ({
+      fileName: item.file_name || 'Open attachment',
+      fileUrl: item.file_url || '#',
+    }))
+}
+
+function renderJsonValue(value: Json | undefined): string {
+  if (value === null || value === undefined) {
+    return 'No response'
+  }
+
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return 'Unable to display response'
   }
 }
 

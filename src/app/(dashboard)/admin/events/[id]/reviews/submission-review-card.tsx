@@ -13,6 +13,17 @@ import {
 } from './actions'
 
 interface SubmissionReviewCardProps {
+  attachments: Array<{
+    fileName: string
+    fileUrl: string
+  }>
+  assignmentHistory: Array<{
+    id: string
+    layer: number
+    reviewerName: string
+    status: string
+  }>
+  bulkFormId: string
   currentLayer: number
   currentLayerAssignments: Array<{
     id: string
@@ -26,8 +37,21 @@ interface SubmissionReviewCardProps {
     reviewerName: string
     value: string
   }>
+  displayStatus: string
   eventId: string
+  layerProgress: Array<{
+    completedAssignments: number
+    isCurrentLayer: boolean
+    layer: number
+    reviewValues: string[]
+    totalAssignments: number
+  }>
   nextAssignableLayer: number | null
+  responseDetails: Array<{
+    label: string
+    type: string
+    value: string
+  }>
   reviewers: Array<{
     id: string
     isActive: boolean
@@ -91,11 +115,17 @@ function StatusBadge({ reviewStatus }: { reviewStatus: string }) {
 }
 
 export function SubmissionReviewCard({
+  attachments,
+  assignmentHistory,
+  bulkFormId,
   currentLayer,
   currentLayerAssignments,
   currentLayerReviews,
+  displayStatus,
   eventId,
+  layerProgress,
   nextAssignableLayer,
+  responseDetails,
   reviewers,
   reviewLayers,
   reviewStatus,
@@ -137,11 +167,31 @@ export function SubmissionReviewCard({
     <Card className="border-white/80 bg-white/95">
       <CardHeader className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <CardTitle>{submissionLabel}</CardTitle>
-            <CardDescription>Submitted {submittedAtLabel}</CardDescription>
+          <div className="flex items-start gap-3">
+            <input
+              className="mt-1 size-4 rounded border-slate-300"
+              form={bulkFormId}
+              name="submission_ids"
+              type="checkbox"
+              value={submissionId}
+            />
+            <input
+              form={bulkFormId}
+              name={`layer_${submissionId}`}
+              type="hidden"
+              value={String(nextAssignableLayer ?? currentLayer ?? 1)}
+            />
+            <div>
+              <CardTitle>{submissionLabel}</CardTitle>
+              <CardDescription>Submitted {submittedAtLabel}</CardDescription>
+            </div>
           </div>
-          <StatusBadge reviewStatus={reviewStatus} />
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">
+              {displayStatus.replaceAll('_', ' ')}
+            </span>
+            <StatusBadge reviewStatus={reviewStatus} />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -164,6 +214,81 @@ export function SubmissionReviewCard({
           <p>
             <span className="font-semibold text-slate-900">Completed reviews:</span> {currentLayerReviews.length}
           </p>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <summary className="cursor-pointer list-none text-sm font-semibold text-slate-950">
+              Submission details
+            </summary>
+            <div className="mt-4 grid gap-3">
+              {responseDetails.length ? (
+                responseDetails.map((response, index) => (
+                  <div className="rounded-2xl border border-white bg-white p-4" key={`${response.label}-${index}`}>
+                    <p className="text-sm font-semibold text-slate-950">{response.label}</p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      {response.type.replaceAll('_', ' ')}
+                    </p>
+                    <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words text-sm leading-6 text-slate-700">
+                      {response.value}
+                    </pre>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-500">No response fields are available for this submission.</p>
+              )}
+            </div>
+          </details>
+
+          <details className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <summary className="cursor-pointer list-none text-sm font-semibold text-slate-950">
+              Files and progress
+            </summary>
+            <div className="mt-4 space-y-4">
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-slate-900">Uploaded files</p>
+                {attachments.length ? (
+                  attachments.map((attachment, index) => (
+                    <a
+                      className="block rounded-2xl border border-white bg-white px-4 py-3 text-sm font-medium text-slate-900 hover:bg-slate-100"
+                      href={attachment.fileUrl}
+                      key={`${attachment.fileName}-${index}`}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {attachment.fileName}
+                    </a>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500">No uploaded files are attached.</p>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-slate-900">Layer progress</p>
+                <div className="grid gap-3">
+                  {layerProgress.map((layer) => (
+                    <div className="rounded-2xl border border-white bg-white p-4" key={layer.layer}>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-slate-950">
+                          Layer {layer.layer}
+                          {layer.isCurrentLayer ? ' · Current' : ''}
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          {layer.completedAssignments}/{layer.totalAssignments} completed
+                        </p>
+                      </div>
+                      <p className="mt-2 text-sm text-slate-500">
+                        {layer.reviewValues.length
+                          ? `Scores: ${layer.reviewValues.join(', ')}`
+                          : 'No review values recorded yet.'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1.15fr_0.95fr]">
@@ -224,6 +349,32 @@ export function SubmissionReviewCard({
                 No completed reviews for the current layer yet.
               </div>
             )}
+
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-slate-900">Assignment history</h3>
+              <p className="text-sm text-slate-500">
+                See which reviewers touched this submission across all layers.
+              </p>
+            </div>
+            {assignmentHistory.length ? (
+              <div className="grid gap-3">
+                {assignmentHistory.map((assignment) => (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700" key={assignment.id}>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-semibold text-slate-950">{assignment.reviewerName}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                        {assignment.status.replaceAll('_', ' ')}
+                      </p>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600">Layer {assignment.layer}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                No assignment history exists yet for this submission.
+              </div>
+            )}
           </div>
 
           <div className="space-y-5">
@@ -231,7 +382,7 @@ export function SubmissionReviewCard({
               <CardHeader>
                 <CardTitle className="text-base">Assign reviewer</CardTitle>
                 <CardDescription>
-                  Add one reviewer at a time for Layer {nextAssignableLayer ?? currentLayer || 1}.
+                  Add one reviewer at a time for Layer {nextAssignableLayer ?? currentLayer ?? 1}.
                 </CardDescription>
               </CardHeader>
               <CardContent>
