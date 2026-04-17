@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { normalizeFormSchema } from '@/lib/forms/schema'
+import { createNotification } from '@/lib/notifications/service'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendSubmissionConfirmationEmail } from '@/lib/email/resend'
 import type { TeacherInfoValues } from '@/lib/validations/submissions'
@@ -382,6 +383,11 @@ export async function submitForm(
     },
   })
 
+  // Notify the event's owning admin that a new submission arrived.
+  await notifyAdminOnSubmission(supabase, submission, teacherInfo).catch((err) => {
+    console.error('[SUBMISSIONS] Failed to deliver admin submission notification', err)
+  })
+
   // Send confirmation email (fire-and-forget)
   sendSubmissionConfirmationEmail({
     to: teacherInfo.email,
@@ -428,6 +434,47 @@ async function logTransaction(supabase: SupabaseAdminClient, input: TransactionI
   if (error) {
     console.error('[SUBMISSIONS] Failed to write transaction log', error)
   }
+}
+
+async function notifyAdminOnSubmission(
+  supabase: SupabaseAdminClient,
+  submission: SubmissionRow,
+  teacher: TeacherInfoValues
+) {
+  const { data, error } = await supabase
+    .from('event_master')
+    .select('id, title, created_by')
+    .eq('id', submission.event_id)
+    .maybeSingle()
+
+  if (error || !data) {
+    return
+  }
+
+  const event = data as { id: string; title: string; created_by: string | null }
+
+  if (!event.created_by) {
+    return
+  }
+
+  const teacherLabel = teacher.name || teacher.email || 'A teacher'
+
+  await createNotification(supabase, {
+    recipientId: event.created_by,
+    recipientType: 'admin',
+    title: 'New submission received',
+    message:
+      submission.submission_number > 1
+        ? `${teacherLabel} submitted another response to ${event.title} (#${submission.submission_number}).`
+        : `${teacherLabel} submitted a new response to ${event.title}.`,
+    type: 'submission',
+    actionUrl: `/admin/events/${event.id}/reviews`,
+    metadata: {
+      event_id: event.id,
+      submission_id: submission.id,
+      submission_number: submission.submission_number,
+    },
+  })
 }
 
 function parseTeacherFields(value: unknown): string[] {

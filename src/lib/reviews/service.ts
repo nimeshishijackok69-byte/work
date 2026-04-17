@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth/auth'
 import { sendReviewerAssignmentEmail } from '@/lib/email/resend'
 import { getEventForAdmin, type AdminContext } from '@/lib/events/service'
 import { normalizeFormSchema } from '@/lib/forms/schema'
+import { createNotification } from '@/lib/notifications/service'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { normalizeGradeConfig } from '@/lib/validations/events'
 import type { Database, Json } from '@/types/database'
@@ -946,6 +947,23 @@ export async function submitReviewForReviewer(
     },
   })
 
+  // If this was the last outstanding review at this layer, ping the event's admin.
+  if ((incompleteCount ?? 0) === 0 && detail.event.created_by) {
+    await createNotification(supabase, {
+      recipientId: detail.event.created_by,
+      recipientType: 'admin',
+      title: 'Submission awaiting decision',
+      message: `All layer ${detail.assignment.layer} reviews are complete for ${detail.event.title}.`,
+      type: 'review_complete',
+      actionUrl: `/admin/events/${detail.event.id}/reviews?status=reviewed`,
+      metadata: {
+        event_id: detail.event.id,
+        submission_id: detail.assignment.submission_id,
+        layer: detail.assignment.layer,
+      },
+    })
+  }
+
   return data as ReviewRow
 }
 
@@ -1197,20 +1215,18 @@ async function createAssignmentNotificationsAndEmails(
 
       const layer = reviewerAssignments[0]?.layer ?? 1
 
-      const notification: Database['public']['Tables']['notification']['Insert'] = {
-        recipient_id: reviewer.id,
-        recipient_type: 'reviewer',
+      await createNotification(supabase, {
+        recipientId: reviewer.id,
+        recipientType: 'reviewer',
         title: 'New review assignment',
         message: `You have ${reviewerAssignments.length} new assignment${reviewerAssignments.length === 1 ? '' : 's'} for ${event.title}.`,
         type: 'assignment',
-        action_url: '/reviewer',
+        actionUrl: '/reviewer',
         metadata: {
           event_id: event.id,
           layer,
         },
-      }
-
-      await supabase.from('notification').insert(notification as never)
+      })
 
       sendReviewerAssignmentEmail({
         to: reviewer.email,
