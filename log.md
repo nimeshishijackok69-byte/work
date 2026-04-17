@@ -296,3 +296,38 @@ pm run type-check � passed.
 - Defined validations for analytics and notifications (`src/lib/validations/analytics.ts` and `src/lib/validations/notifications.ts`).
 - Integrated the features seamlessly into the core layout (`Header.tsx` and `navigation.ts`).
 - Fully merged PR for Analytics layout and notification system.
+
+## [2026-04-17] feat | Phase 7 Completed: Testing, Security Hardening & Polish
+
+**Actor**: AI Agent (v0)
+**Changes**:
+- **Testing infrastructure**: Added Vitest with Node environment and a first wave of unit tests (73 passing) covering form-schema normalisation, event/submission/review validators, the in-memory rate limiter, and the env validator. Added `npm run test`, `test:watch`, `test:coverage` scripts.
+- **E2E scaffold**: Wired Playwright (`playwright.config.ts`) with a dev-server `webServer` block, a public smoke spec, and a submission-validation spec. Added `npm run test:e2e` scripts and `tests/e2e/README.md`.
+- **Bug fix** (discovered by new tests): `reviewerCreateSchema` was chaining `.pick()` after `.transform()` on `registerSchema`, which crashed at runtime whenever an admin created a reviewer. Rebuilt `reviewerCreateSchema` on the shared field schemas and removed the unused `registerSchema` import.
+- **Rate limiting**: Extracted the submissions rate limiter into `src/lib/utils/rate-limit.ts` with a reusable `checkRateLimit({ bucket, identifier, max, windowMs })` helper and `getClientIp`. Applied it to `/api/submissions` (10/min), `/api/auth/register` (5/min), and `/api/upload` (30/min); all return `Retry-After` headers.
+- **Security headers**: Hardened `next.config.ts` with a production Content-Security-Policy (Supabase origins allow-listed), `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and a restrictive `Permissions-Policy`.
+- **Env validation**: Added `src/lib/env.ts` with a Zod-validated `getServerEnv()` / `getPublicEnv()` cached lookup so missing/misconfigured env vars fail loudly at boot instead of deep in a request.
+- **Structured logger**: Added `src/lib/utils/logger.ts` (`logger.info/warn/error/debug`) and migrated the register/submissions/upload routes off of ad-hoc `console.error` calls.
+- **Performance indexes**: Added `supabase/migrations/20260417000000_performance_indexes.sql` for event sorting/expiration, per-event submission sorting, per-reviewer review history, unread-notification counts, and per-event transactions. Pre-existing Recharts tooltip-formatter and Supabase `maybeSingle` typings were repaired so `npm run type-check` now passes cleanly.
+
+**Validation**:
+- `npm run test` — 6 files, 73 tests passing.
+- `npm run type-check` — passed.
+
+## [2026-04-17] feat | Phase 8 Completed: Deployment Prep
+
+**Actor**: AI Agent (v0)
+**Changes**:
+- **Bootstrap script**: Added `scripts/bootstrap-admin.mjs`, an idempotent Node script that upserts the first admin Supabase Auth user + `admin_master` profile from CLI flags (`--email`, `--password`, `--name`) or env vars.
+- **Env template**: Expanded `.env.example` with Resend test/reply variables, commented `NEXTAUTH_URL` guidance, and a `APP_ENV` hint for logger output.
+- **Analytics wiring**: Installed `@vercel/analytics` and `@vercel/speed-insights` and mounted `<Analytics />` + `<SpeedInsights />` in the root layout. Expanded metadata (title template, keywords, robots, Open Graph) and added a `Viewport` export with light/dark theme colors.
+- **Runbook**: Rewrote the README's "Available Scripts" and added a full Deployment Runbook (Supabase provisioning, env vars, first-admin bootstrap, Vercel deploy, and post-deploy smoke test) plus Testing sections for unit and E2E.
+
+**Validation**:
+- `npm run test` — 73/73 passing.
+- `npm run type-check` — passed.
+
+**Git Commits**:
+- `186b601` "feat: setup Vitest and add initial unit tests"
+- `b0997f4` "fix: resolve 'registerSchema' '.transform()' issue"
+- `f4c1147` "feat: bootstrap production with Supabase admin script"

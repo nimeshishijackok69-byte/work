@@ -53,10 +53,12 @@ export function ReviewStatusDonut({ data }: ReviewStatusDonutProps) {
                 boxShadow: '0 10px 30px -10px rgba(15,23,42,0.15)',
                 padding: '10px 14px',
               }}
-              formatter={(value: number, _name, ctx) => {
-                const entry = (ctx?.payload ?? {}) as (typeof enriched)[number]
-                const pct = total ? Math.round((value / total) * 100) : 0
-                return [`${value} (${pct}%)`, entry.label]
+              formatter={(value, _name, ctx) => {
+                const entry = ((ctx as { payload?: (typeof enriched)[number] } | undefined)
+                  ?.payload ?? {}) as Partial<(typeof enriched)[number]>
+                const numeric = typeof value === 'number' ? value : Number(value) || 0
+                const pct = total ? Math.round((numeric / total) * 100) : 0
+                return [`${numeric} (${pct}%)`, entry.label ?? '']
               }}
             />
             <Pie
