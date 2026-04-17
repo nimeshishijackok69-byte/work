@@ -224,3 +224,50 @@ pm run type-check � passed.
 - Updated seed bootstrap admin credentials to match documented local defaults: `admin@formflow.com` / `admin123`.
 - Replaced empty seeded password with a valid bcrypt hash using `crypt(..., gen_salt('bf'))` so Supabase `signInWithPassword()` can authenticate correctly.
 - Added README troubleshooting guidance for `db reset --debug`, schema mismatch root cause, and local verification steps.
+
+## [2026-04-17] fix | Local Auth/Event Validation Stability
+
+**Actor**: AI Agent
+**Changes**:
+- Tightened event validation behavior in `src/lib/validations/events.ts` to avoid local Zod crashes during event workflows.
+- Followed up on the localhost Supabase/GoTrue instability with additional seed and troubleshooting adjustments in `supabase/seed.sql`.
+- Added dedicated troubleshooting documentation in `SUPABASE_FIX_DOCUMENTATION.md` to capture the root cause and local recovery steps.
+
+## [2026-04-17] feat | Session 3 Completed: Teacher Form Submission
+
+**Actor**: AI Agent
+**Changes**:
+- Implemented the public form route family under `src/app/form/[slug]/*`, including the live form page, draft resume page, success page, and missing-form handling.
+- Added teacher submission APIs for public form loading, draft persistence, draft resumption, final submission, and file upload handling.
+- Built the public-form component set to render teacher info fields, all configured form fields, file uploads, and closed-form states.
+- Extended `src/lib/submissions/service.ts`, `src/lib/storage/storage.ts`, and `src/lib/validations/submissions.ts` to support draft tokens, re-submission-safe submission creation, and runtime form validation.
+- Added draft resume email delivery and completed the teacher submission confirmation flow through the shared email layer.
+
+**Git Commits**:
+- `a773971` "17-04-2026 complete phase 3 by opus and gemini 3.1"
+
+## [2026-04-17] chore | Project Log Relocated
+
+**Actor**: AI Agent
+**Changes**:
+- Moved the project evolution log from `.ai/log.md` to the repository root as `log.md`.
+- Kept the append-only history intact while updating the repository layout so the log lives in a single visible location.
+
+**Git Commits**:
+- `7cbc3d3` "changed the loication of log md"
+
+## [2026-04-17] feat | Session 4.1 Completed: Review Workflow Foundation
+
+**Actor**: AI Agent
+**Changes**:
+- Added the shared Phase 4 review domain in `src/lib/reviews/service.ts`, covering reviewer auth context loading, reviewer creation, reviewer activation toggles, assignment creation, review submission, advancement/elimination decisions, notification writes, and reviewer assignment emails.
+- Added review validation schemas in `src/lib/validations/reviews.ts` for reviewer creation, assignment payloads, review submission, and admin advancement decisions.
+- Replaced the reviewer-management placeholder with a working admin screen for creating reviewers, viewing workload, and toggling reviewer activity.
+- Added the admin event review workspace at `src/app/(dashboard)/admin/events/[id]/reviews`, including per-submission reviewer assignment, current-layer review visibility, and admin advance/eliminate actions.
+- Replaced the reviewer dashboard placeholder with a live assignment queue and added the reviewer assignment detail flow for viewing submission data, continuity from prior reviews, and score/grade submission.
+- Implemented the documented review APIs: `POST /api/reviews/assign`, `POST /api/reviews/submit`, and `POST /api/reviews/advance`.
+- Linked the event detail page into the new review workspace so the Phase 4 flow is reachable from the existing admin event surface.
+
+**Validation**:
+- Ran `tsc --noEmit` via `npm.cmd run type-check` — passed.
+- Ran `eslint` via `npm.cmd run lint` — passed.
