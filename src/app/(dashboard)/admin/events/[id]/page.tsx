@@ -114,6 +114,13 @@ export default async function EventDetailPage({
             </Link>
             <Link
               className={cn(buttonVariants({ size: 'sm', variant: 'outline' }))}
+              href={`/admin/events/${event.id}/reviews`}
+            >
+              <Layers3 className="size-4" />
+              Review workspace
+            </Link>
+            <Link
+              className={cn(buttonVariants({ size: 'sm', variant: 'outline' }))}
               href="/admin/events"
             >
               ← Back to events

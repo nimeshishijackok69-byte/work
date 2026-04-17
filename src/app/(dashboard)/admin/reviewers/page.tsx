@@ -1,7 +1,84 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth/auth'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { listReviewersForAdmin, type ReviewerListItem } from '@/lib/reviews/service'
+import { requireAdminContext } from '@/lib/events/service'
+import { toggleReviewerActiveAction } from './actions'
+import { ReviewerCreateForm } from './reviewer-create-form'
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+  }).format(new Date(value))
+}
+
+function ReviewerCard({ item }: { item: ReviewerListItem }) {
+  const toggleAction = toggleReviewerActiveAction.bind(null, item.reviewer.id, !item.reviewer.is_active)
+
+  return (
+    <Card className="border-white/80 bg-white/95">
+      <CardHeader className="space-y-2">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <CardTitle>{item.reviewer.name}</CardTitle>
+            <CardDescription>{item.reviewer.email}</CardDescription>
+          </div>
+          <span
+            className={
+              item.reviewer.is_active
+                ? 'inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700'
+                : 'inline-flex rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600'
+            }
+          >
+            {item.reviewer.is_active ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Pending</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-950">{item.pendingAssignments}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Completed</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-950">{item.completedAssignments}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Total</p>
+            <p className="mt-2 text-2xl font-semibold text-slate-950">{item.totalAssignments}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 text-sm text-slate-600 md:grid-cols-2">
+          <p>
+            <span className="font-semibold text-slate-900">Department:</span>{' '}
+            {item.reviewer.department || 'Not provided'}
+          </p>
+          <p>
+            <span className="font-semibold text-slate-900">Specialization:</span>{' '}
+            {item.reviewer.specialization || 'Not provided'}
+          </p>
+          <p>
+            <span className="font-semibold text-slate-900">Phone:</span>{' '}
+            {item.reviewer.phone || 'Not provided'}
+          </p>
+          <p>
+            <span className="font-semibold text-slate-900">Created:</span> {formatDate(item.reviewer.created_at)}
+          </p>
+        </div>
+
+        <form action={toggleAction}>
+          <Button type="submit" variant={item.reviewer.is_active ? 'destructive' : 'outline'}>
+            {item.reviewer.is_active ? 'Deactivate reviewer' : 'Reactivate reviewer'}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default async function AdminReviewersPage() {
   const session = await auth()
@@ -14,6 +91,9 @@ export default async function AdminReviewersPage() {
     redirect('/reviewer')
   }
 
+  const context = await requireAdminContext()
+  const reviewers = await listReviewersForAdmin(context)
+
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <PageHeader
@@ -21,39 +101,56 @@ export default async function AdminReviewersPage() {
           { href: '/admin', label: 'Dashboard' },
           { label: 'Reviewers' },
         ]}
-        description="This route holds the reviewer-management slot so the sidebar stays accurate before the real CRUD tools arrive."
+        description="Create reviewer accounts, toggle access, and keep an eye on review workload before assigning submissions."
         eyebrow="Admin"
         title="Reviewer management"
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Reviewer tooling placeholder</CardTitle>
-          <CardDescription>
-            The shared shell is ready for reviewer creation, status controls, and workload visibility.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-950">Account setup</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Create reviewer identities and connect them to the Supabase auth users created by admins.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-950">Availability tracking</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Surface active status and assignment load before the review workflow is built out.
-            </p>
-          </div>
-          <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
-            <p className="text-sm font-semibold text-slate-950">Assignment prep</p>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              This route will later anchor assignment controls and override workflows in Phase 4.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.35fr]">
+        <ReviewerCreateForm />
+
+        <Card className="border-white/80 bg-white/95">
+          <CardHeader>
+            <CardTitle>Team workload</CardTitle>
+            <CardDescription>
+              Reviewers stay available for assignment while active. Deactivated reviewers cannot log in or receive new work.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Total reviewers</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-950">{reviewers.length}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Active</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-950">
+                {reviewers.filter((item) => item.reviewer.is_active).length}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Open assignments</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-950">
+                {reviewers.reduce((sum, item) => sum + item.pendingAssignments, 0)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6">
+        {reviewers.length ? (
+          reviewers.map((item) => <ReviewerCard item={item} key={item.reviewer.id} />)
+        ) : (
+          <Card className="border-dashed">
+            <CardHeader>
+              <CardTitle>No reviewers yet</CardTitle>
+              <CardDescription>
+                Create the first reviewer account to start assigning submissions in the review workflow.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }
