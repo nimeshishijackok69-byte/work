@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { registerSchema } from '@/lib/validations/auth'
 
 const uuid = z.string().uuid('Use a valid identifier.')
 const trimmedString = z.string().trim()
@@ -30,16 +29,21 @@ const paginationSchema = z.object({
   limit: z.coerce.number().int().min(1).max(25).default(10),
 })
 
-export const reviewerCreateSchema = registerSchema
-  .pick({
-    department: true,
-    email: true,
-    name: true,
-    password: true,
-    phone: true,
-    specialization: true,
+export const reviewerCreateSchema = z
+  .object({
+    department: departmentField,
+    email: emailField,
+    name: nameField,
+    password: passwordField,
+    phone: phoneField,
+    specialization: specializationField,
   })
-  .transform((values) => values)
+  .transform((values) => ({
+    ...values,
+    department: values.department || undefined,
+    phone: values.phone || undefined,
+    specialization: values.specialization || undefined,
+  }))
 
 export const reviewerUpdateSchema = z
   .object({

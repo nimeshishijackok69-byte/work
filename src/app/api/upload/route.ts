@@ -1,8 +1,24 @@
 import { NextResponse } from 'next/server'
 import { uploadFile, FileTooLargeError, FileTypeNotAllowedError } from '@/lib/storage/storage'
+import { checkRateLimit, getClientIp } from '@/lib/utils/rate-limit'
+import { logger } from '@/lib/utils/logger'
 
 export async function POST(request: Request) {
   try {
+    const ip = getClientIp(request)
+    const rate = checkRateLimit({
+      bucket: 'uploads',
+      identifier: ip,
+      max: 30,
+      windowMs: 60_000,
+    })
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many uploads. Please wait before uploading again.' },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfterSeconds) } }
+      )
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as File | null
     const eventId = formData.get('eventId') as string | null
@@ -31,7 +47,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 415 })
     }
 
-    console.error('[API] POST /api/upload', error)
+    logger.error('upload.post_failed', error)
     return NextResponse.json({ error: 'File upload failed.' }, { status: 500 })
   }
 }
