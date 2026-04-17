@@ -140,12 +140,96 @@ You can also omit `to` if `RESEND_TEST_EMAIL` is set in `.env.local`.
 ## Available Scripts
 
 ```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
-npm run type-check   # Run TypeScript type checking
-npm run lint         # Run ESLint
+npm run dev           # Start development server
+npm run build         # Build for production
+npm run start         # Start production server
+npm run type-check    # TypeScript type checking
+npm run lint          # ESLint
+npm run test          # Run unit tests (Vitest) once
+npm run test:watch    # Run unit tests in watch mode
+npm run test:coverage # Run unit tests with coverage report
+npm run test:e2e      # Run Playwright end-to-end tests
+npm run test:e2e:ui   # Run Playwright with the UI runner
 ```
+
+## Testing
+
+### Unit tests (Vitest)
+
+```bash
+npm run test
+```
+
+Tests live under `tests/unit/` and cover the Zod validation schemas, the
+form-renderer schema normaliser, the in-memory rate limiter, and the
+environment-variable validator.
+
+### End-to-end tests (Playwright)
+
+```bash
+npx playwright install --with-deps   # first time only
+npm run test:e2e
+```
+
+The Playwright config boots the Next.js dev server automatically and runs
+against `http://localhost:3000`. See `tests/e2e/README.md` for notes on
+writing new specs.
+
+## Deployment Runbook
+
+### 1. Provision Supabase
+
+1. Create a new Supabase project and note the project ref, anon key, and
+   service-role key.
+2. Apply the schema migrations located in `supabase/migrations/` in
+   chronological order (via the Supabase dashboard SQL editor, the
+   Supabase CLI, or the Supabase MCP).
+3. Create the `uploads` storage bucket if file uploads are used.
+
+### 2. Configure the Vercel project
+
+Set the following environment variables in the Vercel dashboard (all
+environments unless noted):
+
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only service-role key |
+| `NEXTAUTH_URL` | Full site URL (e.g. `https://formflow.vercel.app`) |
+| `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
+| `RESEND_API_KEY` | Resend API key |
+| `RESEND_FROM_EMAIL` | Verified sender (e.g. `FormFlow <noreply@yourdomain>`) |
+| `RESEND_REPLY_TO_EMAIL` | Optional reply-to |
+| `RESEND_TEST_EMAIL` | Optional, development only |
+
+### 3. Bootstrap the first admin
+
+After the database schema is in place, create the initial admin account:
+
+```bash
+node --env-file=.env.local scripts/bootstrap-admin.mjs \
+  --email=you@yourdomain.com \
+  --password='a-strong-password' \
+  --name='Your Name'
+```
+
+The script is idempotent: re-running it updates the profile instead of
+creating duplicates.
+
+### 4. Deploy
+
+Push to the connected Git branch and let Vercel build. Vercel Analytics
+and Speed Insights are wired up in `src/app/layout.tsx`; enable them in
+the Vercel project dashboard.
+
+### 5. Post-deploy smoke test
+
+1. Sign in at `/login` with the bootstrap credentials.
+2. Create an event and publish its form.
+3. Submit the form anonymously from an incognito window.
+4. Confirm the submission confirmation email arrives via Resend.
+5. Assign a reviewer and complete one review from the reviewer account.
 
 ## Project Structure
 
