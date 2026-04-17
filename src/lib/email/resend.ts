@@ -155,3 +155,15 @@ export async function sendReviewerAssignmentEmail(
   })
 }
 
+export async function sendDraftResumeEmail(
+  options: import('./templates/draft-resume-email').DraftResumeEmailProps & { to: string | string[] }
+) {
+  const { DraftResumeEmail, getDraftResumeText } = await import('./templates/draft-resume-email')
+  return sendEmail({
+    react: createElement(DraftResumeEmail, options),
+    subject: `Resume your submission: ${options.eventTitle}`,
+    text: getDraftResumeText(options),
+    to: options.to,
+  })
+}
+
