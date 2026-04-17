@@ -1,5 +1,12 @@
 import type { LucideIcon } from 'lucide-react'
-import { BarChart3, ClipboardCheck, LayoutDashboard, UsersRound } from 'lucide-react'
+import {
+  BarChart3,
+  Bell,
+  CalendarRange,
+  ClipboardCheck,
+  LayoutDashboard,
+  UsersRound,
+} from 'lucide-react'
 
 export type DashboardRole = 'admin' | 'reviewer'
 
@@ -21,13 +28,25 @@ const ADMIN_NAVIGATION: DashboardNavItem[] = [
     title: 'Events',
     href: '/admin/events',
     description: 'Create, publish, and manage event forms.',
-    icon: BarChart3,
+    icon: CalendarRange,
   },
   {
     title: 'Reviewers',
     href: '/admin/reviewers',
     description: 'Manage reviewer accounts and workloads.',
     icon: UsersRound,
+  },
+  {
+    title: 'Analytics',
+    href: '/admin/analytics',
+    description: 'Per-event submission and review metrics.',
+    icon: BarChart3,
+  },
+  {
+    title: 'Notifications',
+    href: '/notifications',
+    description: 'Inbox of assignment and review updates.',
+    icon: Bell,
   },
 ]
 
@@ -37,6 +56,12 @@ const REVIEWER_NAVIGATION: DashboardNavItem[] = [
     href: '/reviewer',
     description: 'Review assigned submissions and next actions.',
     icon: ClipboardCheck,
+  },
+  {
+    title: 'Notifications',
+    href: '/notifications',
+    description: 'Your assignment and review inbox.',
+    icon: Bell,
   },
 ]
 

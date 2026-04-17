@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import {
+  BarChart3,
   CalendarClock,
   ClipboardCopy,
   ExternalLink,
@@ -118,6 +119,13 @@ export default async function EventDetailPage({
             >
               <Layers3 className="size-4" />
               Review workspace
+            </Link>
+            <Link
+              className={cn(buttonVariants({ size: 'sm', variant: 'outline' }))}
+              href={`/admin/events/${event.id}/analytics`}
+            >
+              <BarChart3 className="size-4" />
+              Analytics
             </Link>
             <Link
               className={cn(buttonVariants({ size: 'sm', variant: 'outline' }))}

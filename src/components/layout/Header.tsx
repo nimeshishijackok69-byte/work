@@ -1,9 +1,10 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { Bell, LogOut, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { signOutAction } from '@/lib/auth/actions'
 import { Button } from '@/components/ui/button'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { getActiveNavigationItem, getRoleLabel, type DashboardRole } from './navigation'
 
 interface HeaderProps {
@@ -77,16 +78,7 @@ export function Header({
           </h2>
         </div>
 
-        <Button
-          aria-label="Notifications placeholder"
-          className="relative"
-          size="icon-sm"
-          type="button"
-          variant="outline"
-        >
-          <Bell className="size-4" />
-          <span className="absolute right-2 top-2 size-2 rounded-full bg-primary" />
-        </Button>
+        <NotificationBell />
 
         <div className="hidden min-w-0 items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-3 py-2 shadow-sm sm:flex">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
