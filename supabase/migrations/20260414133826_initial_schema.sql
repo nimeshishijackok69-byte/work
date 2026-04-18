@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Table: admin_profile
 CREATE TABLE admin_profile (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE admin_profile (
 
 -- Table: event_master
 CREATE TABLE event_master (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     description TEXT,
     form_schema JSONB DEFAULT '{"fields":[]}',
@@ -40,7 +40,7 @@ CREATE INDEX idx_event_created_by ON event_master(created_by);
 
 -- Table: user_master
 CREATE TABLE user_master (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES event_master(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     email TEXT NOT NULL,
@@ -55,7 +55,7 @@ CREATE INDEX idx_user_email_event ON user_master(email, event_id);
 
 -- Table: submission
 CREATE TABLE submission (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES event_master(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES user_master(id) ON DELETE CASCADE,
     form_data JSONB DEFAULT '{}',
@@ -81,7 +81,7 @@ CREATE INDEX idx_submission_review_status ON submission(event_id, review_status,
 
 -- Table: reviewer_master
 CREATE TABLE reviewer_master (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     auth_user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -99,7 +99,7 @@ CREATE INDEX idx_reviewer_active ON reviewer_master(is_active);
 
 -- Table: review_assignment
 CREATE TABLE review_assignment (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES event_master(id) ON DELETE CASCADE,
     submission_id UUID NOT NULL REFERENCES submission(id) ON DELETE CASCADE,
     reviewer_id UUID NOT NULL REFERENCES reviewer_master(id) ON DELETE CASCADE,
@@ -119,7 +119,7 @@ CREATE INDEX idx_assignment_status ON review_assignment(reviewer_id, status);
 
 -- Table: review
 CREATE TABLE review (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     assignment_id UUID UNIQUE NOT NULL REFERENCES review_assignment(id) ON DELETE CASCADE,
     event_id UUID NOT NULL REFERENCES event_master(id) ON DELETE CASCADE,
     submission_id UUID NOT NULL REFERENCES submission(id) ON DELETE CASCADE,
@@ -140,7 +140,7 @@ CREATE INDEX idx_review_submission_layer ON review(submission_id, layer);
 
 -- Table: transaction_master
 CREATE TABLE transaction_master (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     event_id UUID NOT NULL REFERENCES event_master(id) ON DELETE CASCADE,
     submission_id UUID REFERENCES submission(id) ON DELETE CASCADE,
     user_id UUID REFERENCES user_master(id) ON DELETE CASCADE,
@@ -158,7 +158,7 @@ CREATE INDEX idx_transaction_created ON transaction_master(created_at);
 
 -- Table: notification
 CREATE TABLE notification (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     recipient_id UUID NOT NULL,
     recipient_type TEXT NOT NULL,
     title TEXT NOT NULL,
