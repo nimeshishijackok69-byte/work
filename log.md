@@ -368,8 +368,16 @@ pm run type-check � passed.
 
 **Actor**: AI Agent
 **Changes**:
-- **Dynamic Vercel URLs**: Created a `getBaseUrl` utility in `src/lib/utils.ts` to dynamically resolve production/preview environment URLs out of Vercel `process.env`. Replaced hardcoded `http://localhost:3000` instances in the Event detail page (form sharing link) and Reviewer Service (assignment emails), ensuring forms are readily shareable across the internet.
-- **Admin Dashboard Cleanup**: Stripped out early-development placeholders (e.g., 'Session 1.5', 'Next build target') from `src/app/(dashboard)/admin/page.tsx`. Replaced them with production-ready landing copy, including a 'System Capabilities' overview and a 'Quick Status Reference' pane mapping active app services (Auth & DB).
-- **Sidebar Cleanup**: Removed the 'Session 1.5' placeholder card from `src/components/layout/Sidebar.tsx` and replaced it with a branded 'FormFlow v1.0' footer with a professional product tagline.
-- **Events Page Cleanup**: Removed the 'What Session 2.1 unlocked' dev card from `src/app/(dashboard)/admin/events/page.tsx` and replaced it with a clean 'Event Lifecycle' explainer (Draft → Published → Closed).
-- **Full Sweep**: Verified zero remaining 'Session X.X', 'Next build target', 'Coming next', or 'Ready now' placeholder strings exist in the entire `src/` directory.
+- **Dynamic Vercel URLs** `[ebdc322]`: Created a `getBaseUrl` utility in `src/lib/utils.ts` to dynamically resolve production/preview environment URLs out of Vercel `process.env`. Replaced hardcoded `http://localhost:3000` instances in the Event detail page (form sharing link) and Reviewer Service (assignment emails), ensuring forms are readily shareable across the internet.
+- **Admin Dashboard Cleanup** `[ebdc322]`: Stripped out early-development placeholders (e.g., 'Session 1.5', 'Next build target') from `src/app/(dashboard)/admin/page.tsx`. Replaced them with production-ready landing copy, including a 'System Capabilities' overview and a 'Quick Status Reference' pane mapping active app services (Auth & DB).
+- **Sidebar Cleanup** `[c517253]`: Removed the 'Session 1.5' placeholder card from `src/components/layout/Sidebar.tsx` and replaced it with a branded 'FormFlow v1.0' footer with a professional product tagline.
+- **Events Page Cleanup** `[c517253]`: Removed the 'What Session 2.1 unlocked' dev card from `src/app/(dashboard)/admin/events/page.tsx` and replaced it with a clean 'Event Lifecycle' explainer (Draft → Published → Closed).
+- **Full Sweep** `[c517253]`: Verified zero remaining 'Session X.X', 'Next build target', 'Coming next', or 'Ready now' placeholder strings exist in the entire `src/` directory.
+
+## [2026-04-19] fix | Form File Upload Policy & Defaults
+
+**Actor**: AI Agent
+**Changes**:
+- **Storage DB Deployment** `[b1b1eff]`: Created a new SQL migration script (`20260419000000_storage_buckets.sql`) establishing the `form-uploads` storage bucket with correct `public` properties and RLS policies since it was missing from the initial database rollout. Deployed this directly to the remote Vercel database using `npx supabase db push`.
+- **Allowed Extension Defaults** `[b1b1eff]`: Updated `src/lib/forms/schema.ts` to enforce 8 standard office-based file types by default (`.pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .txt`) instead of allowing any file extension. Enabled multiple file selection explicitly and increased default max file allowance to 5 options.
+
