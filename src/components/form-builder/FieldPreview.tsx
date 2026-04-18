@@ -45,8 +45,8 @@ function PreviewBody({ field }: { field: FormField }) {
     case 'multiple_choice':
       return (
         <div className="space-y-3">
-          {field.config.options.slice(0, 5).map((option) => (
-            <label className="flex items-center gap-3 text-sm text-slate-600" key={option}>
+          {field.config.options.slice(0, 5).map((option, optionIndex) => (
+            <label className="flex items-center gap-3 text-sm text-slate-600" key={optionIndex}>
               <Circle className="size-4" />
               <span>{option}</span>
             </label>
@@ -59,8 +59,8 @@ function PreviewBody({ field }: { field: FormField }) {
     case 'checkboxes':
       return (
         <div className="space-y-3">
-          {field.config.options.slice(0, 5).map((option) => (
-            <label className="flex items-center gap-3 text-sm text-slate-600" key={option}>
+          {field.config.options.slice(0, 5).map((option, optionIndex) => (
+            <label className="flex items-center gap-3 text-sm text-slate-600" key={optionIndex}>
               <CheckSquare className="size-4" />
               <span>{option}</span>
             </label>

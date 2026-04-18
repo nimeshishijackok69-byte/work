@@ -48,6 +48,13 @@ function formatDateForInput(isoDate: string | null) {
   }
 }
 
+/** Produces a `datetime-local`-compatible string for the current minute. */
+function getNowForInput() {
+  const d = new Date()
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function getTeacherFieldsArray(value: unknown): string[] {
   if (!Array.isArray(value)) return ['name', 'email']
   return value.filter((f): f is string => typeof f === 'string')
@@ -55,6 +62,23 @@ function getTeacherFieldsArray(value: unknown): string[] {
 
 function getNextGradeLabel(index: number) {
   return `Grade ${index + 1}`
+}
+
+const selectClassName =
+  'flex h-11 w-full appearance-none rounded-lg border border-input bg-background px-3 py-2 pr-10 text-sm shadow-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15'
+
+function SelectChevron() {
+  return (
+    <svg
+      className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
 }
 
 function GradeConfigEditor({
@@ -264,23 +288,26 @@ export function EventEditForm({ event }: EventEditFormProps) {
           <div className="grid gap-5 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="edit-scoring-type">Scoring type</Label>
-              <select
-                className="flex h-11 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:border-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15"
-                defaultValue={event.scoring_type}
-                id="edit-scoring-type"
-                name="scoring_type"
-                onChange={(event) => {
-                  const nextValue = event.target.value === 'grade' ? 'grade' : 'numeric'
-                  setScoringType(nextValue)
+              <div className="relative">
+                <select
+                  className={selectClassName}
+                  defaultValue={event.scoring_type}
+                  id="edit-scoring-type"
+                  name="scoring_type"
+                  onChange={(event) => {
+                    const nextValue = event.target.value === 'grade' ? 'grade' : 'numeric'
+                    setScoringType(nextValue)
 
-                  if (nextValue === 'grade' && gradeConfig.length === 0) {
-                    setGradeConfig(defaultGradeConfig.map((item) => ({ ...item })))
-                  }
-                }}
-              >
-                <option value="numeric">Numeric score</option>
-                <option value="grade">Letter grade</option>
-              </select>
+                    if (nextValue === 'grade' && gradeConfig.length === 0) {
+                      setGradeConfig(defaultGradeConfig.map((item) => ({ ...item })))
+                    }
+                  }}
+                >
+                  <option value="numeric">Numeric score</option>
+                  <option value="grade">Letter grade</option>
+                </select>
+                <SelectChevron />
+              </div>
               <FieldError errors={formState.errors?.scoring_type} />
             </div>
 
@@ -292,7 +319,9 @@ export function EventEditForm({ event }: EventEditFormProps) {
                   className="pl-10"
                   defaultValue={formatDateForInput(event.expiration_date)}
                   id="edit-expiration"
+                  min={getNowForInput()}
                   name="expiration_date"
+                  step="60"
                   type="datetime-local"
                 />
               </div>
@@ -323,9 +352,9 @@ export function EventEditForm({ event }: EventEditFormProps) {
             <input name="teacher_fields" type="hidden" value="email" />
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-slate-300 hover:bg-slate-100">
                 <input
-                  className="mt-1 size-4"
+                  className="mt-1 size-4 rounded border-slate-300 accent-primary"
                   defaultChecked={teacherFields.includes('school_name')}
                   name="teacher_fields"
                   type="checkbox"
@@ -339,9 +368,9 @@ export function EventEditForm({ event }: EventEditFormProps) {
                 </span>
               </label>
 
-              <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-slate-300 hover:bg-slate-100">
                 <input
-                  className="mt-1 size-4"
+                  className="mt-1 size-4 rounded border-slate-300 accent-primary"
                   defaultChecked={teacherFields.includes('phone')}
                   name="teacher_fields"
                   type="checkbox"

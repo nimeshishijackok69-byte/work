@@ -38,8 +38,20 @@ An automated browser subagent was deployed against the live production environme
 
 ---
 
-## 🚀 4. Next Technical Steps / To-Do
-If you are the next AI assistant taking over, your immediate context is that the **Admin Tier is stable and fully synced to the production SQL DB**. 
+## 🐞 4. Frontend QA Fixes (Latest)
+A comprehensive frontend QA audit was conducted on the Codex-generated form builder and event creation forms. The following issues were resolved and verified with a clean `next build`:
+
+- **🔴 Critical Fix (TextListEditor):** Modified `TextListEditor` to use local state (`draft`) and only parse/filter empty lines on **blur**. This resolved a critical bug where pressing Enter or deleting text was impossible in MCQ, Dropdown, and Checkboxes fields because empty lines were aggressively stripped on every keystroke.
+- **Medium Fixes (Expiration Date):** Updated the `datetime-local` input in both Event Create and Event Edit forms to include a `min` constraint (current time) and `step="60"` for minute precision.
+- **UI/Polish (Forms):** Replaced native `<select>` dropdowns with custom `appearance-none` styling and a chevron SVG. Restyled native checkboxes in the "Teacher info to collect" section to feature an `accent-primary` color and improved hover states.
+- **UI/Polish (Toggle Switch):** Upgraded `ToggleRow` (used for "Allow multiple files" and other toggles) from a bare browser checkbox into a fully styled, animated CSS switch using Tailwind `peer` utilities.
+- **Layout Fix:** Wrapped the `FieldConfigPanel` in the `FormBuilder` with a sticky sidebar that triggers `overflow-y-auto`, ensuring long configuration panels do not overflow the main viewport.
+- **Warning Fixes & Accessibility:** Fixed "Duplicate React Key" warnings in `FieldPreview.tsx` and `FormPreview.tsx` by using index-based keys for rendering non-unique option lists. Upgraded the `FormPreview` modal with proper ARIA attributes (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`).
+
+---
+
+## 🚀 5. Next Technical Steps / To-Do
+If you are the next AI assistant taking over, your immediate context is that the **Admin Tier is stable and fully synced to the production SQL DB**, and the **frontend components have been QA'd and polished**. 
 
 **Focus Areas Moving Forward:**
 1. Generate standard `/form/[event-id]` links for the created draft events to test the public Submission feature.

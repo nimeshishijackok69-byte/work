@@ -106,8 +106,8 @@ function FieldPreviewBody({ field }: { field: FormField }) {
     case 'multiple_choice':
       return (
         <div className="space-y-3">
-          {field.config.options.map((option) => (
-            <label className="flex items-center gap-3 text-sm text-slate-600" key={option}>
+          {field.config.options.map((option, optionIndex) => (
+            <label className="flex items-center gap-3 text-sm text-slate-600" key={optionIndex}>
               <Circle className="size-4" />
               <span>{option}</span>
             </label>
@@ -117,8 +117,8 @@ function FieldPreviewBody({ field }: { field: FormField }) {
     case 'checkboxes':
       return (
         <div className="space-y-3">
-          {field.config.options.map((option) => (
-            <label className="flex items-center gap-3 text-sm text-slate-600" key={option}>
+          {field.config.options.map((option, optionIndex) => (
+            <label className="flex items-center gap-3 text-sm text-slate-600" key={optionIndex}>
               <CheckSquare className="size-4" />
               <span>{option}</span>
             </label>
@@ -322,11 +322,11 @@ export function FormPreview({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 p-4">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative flex h-full max-h-[min(920px,100%)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-slate-100 shadow-2xl">
+      <div aria-labelledby="form-preview-title" aria-modal="true" className="relative flex h-full max-h-[min(920px,100%)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-slate-100 shadow-2xl" role="dialog">
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-white px-6 py-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Full preview</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950">{eventTitle}</h2>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950" id="form-preview-title">{eventTitle}</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               This is the current teacher-facing draft before publish.
             </p>

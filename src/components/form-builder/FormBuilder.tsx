@@ -323,12 +323,14 @@ export function FormBuilder({
           </CardContent>
         </Card>
 
-        <FieldConfigPanel
-          isReadOnly={isReadOnly}
-          onRemoveField={removeField}
-          onUpdateField={(field) => updateField(field.id, field)}
-          selectedField={selectedField}
-        />
+        <div className="xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:rounded-[1.75rem]">
+          <FieldConfigPanel
+            isReadOnly={isReadOnly}
+            onRemoveField={removeField}
+            onUpdateField={(field) => updateField(field.id, field)}
+            selectedField={selectedField}
+          />
+        </div>
       </div>
 
       <FormPreview

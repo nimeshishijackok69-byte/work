@@ -331,3 +331,18 @@ pm run type-check � passed.
 - `186b601` "feat: setup Vitest and add initial unit tests"
 - `b0997f4` "fix: resolve 'registerSchema' '.transform()' issue"
 - `f4c1147` "feat: bootstrap production with Supabase admin script"
+
+## [2026-04-19] fix | Frontend QA Polish & TextListEditor Bugfix
+
+**Actor**: AI Agent
+**Changes**:
+- **TextListEditor Rewrite**: Fixed critical bug where MCQ/Dropdown/Checkboxes removed empty lines on every keystroke, breaking newline additions. Implemented local `draft` state and on-blur parsing.
+- **Expiration Date Enhancements**: Added `min` constraint (current time) and `step="60"` precision to the `datetime-local` inputs in both Event Create and Edit forms.
+- **Element Polish**: Styled native `<select>` dropdowns using custom `appearance-none` and a chevron SVG icon. Restyled native checkboxes in 'Teacher info to collect' section to feature an `accent-primary` color.
+- **Toggle Switch**: Built a newly styled CSS toggle switch for `ToggleRow`, replacing the default browser checkbox.
+- **UI Overflow Fix**: Wrapped `FieldConfigPanel` in `FormBuilder` within a sticky scrollable container to gracefully handle vertically overflowing configurations.
+- **Accessibility & Warnings**: Addressed Duplicate React key warnings in `FieldPreview.tsx` and `FormPreview.tsx` by using index-based arrays mapping. Appended correct ARIA tags (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`) to `FormPreview.tsx`.
+
+**Validation**:
+- `npx tsc --noEmit` — 0 errors, passed cleanly.
+- `npx next build` — Exit code 0, generated correctly without warnings.
