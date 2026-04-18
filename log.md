@@ -370,3 +370,6 @@ pm run type-check � passed.
 **Changes**:
 - **Dynamic Vercel URLs**: Created a `getBaseUrl` utility in `src/lib/utils.ts` to dynamically resolve production/preview environment URLs out of Vercel `process.env`. Replaced hardcoded `http://localhost:3000` instances in the Event detail page (form sharing link) and Reviewer Service (assignment emails), ensuring forms are readily shareable across the internet.
 - **Admin Dashboard Cleanup**: Stripped out early-development placeholders (e.g., 'Session 1.5', 'Next build target') from `src/app/(dashboard)/admin/page.tsx`. Replaced them with production-ready landing copy, including a 'System Capabilities' overview and a 'Quick Status Reference' pane mapping active app services (Auth & DB).
+- **Sidebar Cleanup**: Removed the 'Session 1.5' placeholder card from `src/components/layout/Sidebar.tsx` and replaced it with a branded 'FormFlow v1.0' footer with a professional product tagline.
+- **Events Page Cleanup**: Removed the 'What Session 2.1 unlocked' dev card from `src/app/(dashboard)/admin/events/page.tsx` and replaced it with a clean 'Event Lifecycle' explainer (Draft → Published → Closed).
+- **Full Sweep**: Verified zero remaining 'Session X.X', 'Next build target', 'Coming next', or 'Ready now' placeholder strings exist in the entire `src/` directory.
