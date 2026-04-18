@@ -1,0 +1,47 @@
+# FormFlow Project: LLM Handoff Context & Testing Log
+
+**Purpose:** This document is meant to serve as a fast-track context injection for any LLM starting work on the FormFlow project. It summarizes the current production environment state, past errors resolved, and the most recent frontend testing logs.
+
+---
+
+## 🏗️ 1. Infrastructure & Current State
+- **Stack:** Next.js + Supabase + Vercel Deployment.
+- **Production URL:** `https://work-zeta-nine.vercel.app`
+- **Supabase DB:** Project `nbkbatbenvwugisxtxkr` (AWS us-east-1).
+- **Core Architecture:** Multi-tier, role-based form evaluation system containing Admins, Reviewers, and public Form Submissions (linked to specific events).
+
+---
+
+## 🔐 2. Authentication & Admin Access
+**Crucial Context:** During initial deployment testing, the web app was completely locked down at the `/login` page securely prompting the user to "Bootstrap the first admin account through the registration API".
+
+- **The Issue:** The `/api/auth/register` bootstrapping endpoint originally failed with a HTTP 500 (`"Unable to create the admin profile"`). The cause was that the **Supabase production database was missing all structural migrations** (tables/RLS policies like `admin_profile` were missing).
+- **The Fix:** Migrations were forced to production using `npx supabase db push --db-url [Vercel's POSTGRES_URL_NON_POOLING variable]`. Once the schema synced, the bootstrapping API was successfully invoked.
+
+**Active Production Credentials (Super Admin):**
+* **Email:** `admin@example.com`
+* **Password:** `Password123`
+
+*(Note: These credentials bypass the Vercel branch login and land directly inside the `/admin` dashboard. Do not attempt to run `npm run dev` to test this functionality if RAM constrained; conduct tests natively in the browser against the live Vercel URL using these credentials.)*
+
+---
+
+## 🧪 3. Complete Testing Log (Admin Dashboard)
+An automated browser subagent was deployed against the live production environment using the above credentials. Here is the verified functionality checklist:
+
+- **✅ Role-Based Routing:** Verified. Successful login dynamically redirects the authenticated session to the `/admin` workspace. Direct navigation to `/reviewer` or `/form` as an unauthenticated guest correctly bounces back to `/login`.
+- **✅ Admin Dashboard Layout:** Verified shell structure, sidebar navigation, and header notifications.
+- **✅ Events CRUD:** Navigated to the Events tab and successfully created a **Draft Event** titled "Test Event 2026". Event options (Numeric scoring, Teacher Info toggles: School name/Phone number) write to the DB correctly.
+- **✅ Reviewer Management:** Navigated to the Reviewer tab and successfully provisioned a mock reviewer (`reviewer@test.com`) through the Admin UI.
+- **✅ Notification System:** Verified the notification architecture renders correctly without fatal errors when empty ("All caught up" default state).
+- **⚠️ Public Form Submission (`/form`):** Found a `404 Not Found` when manually attempting to navigate strictly to `/form`. **Context:** The system expects forms to be tied to a dynamic Event ID rather than a global singular route. Event links must be published from the Events dashboard to become publicly accessible.
+
+---
+
+## 🚀 4. Next Technical Steps / To-Do
+If you are the next AI assistant taking over, your immediate context is that the **Admin Tier is stable and fully synced to the production SQL DB**. 
+
+**Focus Areas Moving Forward:**
+1. Generate standard `/form/[event-id]` links for the created draft events to test the public Submission feature.
+2. Log in as a Reviewer (using the invited account or bootstrapping a new one) to test the Reviewer Dashboard and grading mechanisms.
+3. Advance the "Session" functionality or add complex custom styling features to the user-facing forms as per the parent Next.js application requirements.
