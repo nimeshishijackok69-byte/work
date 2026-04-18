@@ -116,10 +116,10 @@ function SidebarBody({ collapsed, mobile = false, onCloseMobile, role }: Sidebar
           <div className="rounded-3xl bg-slate-950 px-4 py-5 text-slate-50 shadow-lg shadow-slate-950/10">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Sparkles className="size-4 text-indigo-300" />
-              Session 1.5
+              FormFlow v1.0
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              The shell is ready for event management, reviewer tools, and notification workflows.
+              Multi-tier evaluation platform for scalable form management and review workflows.
             </p>
           </div>
         </div>

@@ -363,3 +363,10 @@ pm run type-check � passed.
 **Validation**:
 - `npx tsc --noEmit` — 0 errors, passed cleanly.
 - `npx next build` — Exit code 0, generated correctly without warnings.
+
+## [2026-04-19] refactor | Admin Dashboard & Production Base URLs
+
+**Actor**: AI Agent
+**Changes**:
+- **Dynamic Vercel URLs**: Created a `getBaseUrl` utility in `src/lib/utils.ts` to dynamically resolve production/preview environment URLs out of Vercel `process.env`. Replaced hardcoded `http://localhost:3000` instances in the Event detail page (form sharing link) and Reviewer Service (assignment emails), ensuring forms are readily shareable across the internet.
+- **Admin Dashboard Cleanup**: Stripped out early-development placeholders (e.g., 'Session 1.5', 'Next build target') from `src/app/(dashboard)/admin/page.tsx`. Replaced them with production-ready landing copy, including a 'System Capabilities' overview and a 'Quick Status Reference' pane mapping active app services (Auth & DB).

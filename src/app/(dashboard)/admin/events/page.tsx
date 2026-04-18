@@ -127,28 +127,28 @@ export default async function AdminEventsPage({
         <div className="space-y-6">
           <Card className="bg-slate-950 text-slate-50 shadow-xl shadow-slate-950/15">
             <CardHeader>
-              <CardTitle className="text-slate-50">What Session 2.1 unlocked</CardTitle>
+              <CardTitle className="text-slate-50">Event Lifecycle</CardTitle>
               <CardDescription className="text-slate-300">
-                We now have real event records, status tracking, audit logging, and share-link generation.
+                Events move through a structured pipeline from draft to published to closed.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-sm font-semibold text-white">Draft lifecycle</p>
+                <p className="text-sm font-semibold text-white">Draft</p>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Every new event starts in draft so the builder can evolve safely.
+                  Configure settings, build the form, and preview before going live.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-sm font-semibold text-white">Stable metadata</p>
+                <p className="text-sm font-semibold text-white">Published</p>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Review depth, scoring model, deadlines, and teacher fields are stored now.
+                  The form is live and accepting teacher submissions via a shareable link.
                 </p>
               </div>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <p className="text-sm font-semibold text-white">Next build target</p>
+                <p className="text-sm font-semibold text-white">Closed</p>
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                  The form builder can plug into these draft events next without reworking event setup.
+                  Submissions are locked and the review pipeline can process results.
                 </p>
               </div>
             </CardContent>
