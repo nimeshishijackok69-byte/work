@@ -33,7 +33,7 @@ export default async function AdminPage() {
             </Link>
           </>
         }
-        description="Your dashboard shell is ready. Event management, reviewer setup, and analytics modules now have a shared frame to grow into."
+        description="Your core workspace is fully configured. Use the navigation to manage forms, review pipelines, and monitor submissions."
         eyebrow="Admin Dashboard"
         title={`Welcome back, ${session.user.name ?? 'Admin'}.`}
       />
@@ -41,28 +41,28 @@ export default async function AdminPage() {
       <div className="grid gap-6 xl:grid-cols-[1.4fr_0.95fr]">
         <Card className="border-primary/10 bg-white/95">
           <CardHeader>
-            <CardTitle>What this shell unlocks</CardTitle>
+            <CardTitle>System Capabilities</CardTitle>
             <CardDescription>
-              Session 1.5 establishes the shared dashboard frame that future admin tools will reuse.
+              Manage the end-to-end evaluation flow from form creation to final decisions.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-3">
             <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-950">Events workspace</p>
+              <p className="text-sm font-semibold text-slate-950">Events Workspace</p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Event CRUD and the form builder can now land in a persistent admin shell.
+                Design forms, publish drafts, and track incoming submissions across active windows.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-950">Reviewer tools</p>
+              <p className="text-sm font-semibold text-slate-950">Reviewer Tools</p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Reviewer management gets a dedicated navigation target and room for workload views.
+                Onboard evaluators, allocate submission assignments across stages, and review decisions.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200/80 bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-950">Shared navigation</p>
+              <p className="text-sm font-semibold text-slate-950">Analytics Data</p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                The responsive sidebar and header keep admin routes consistent across sessions.
+                Visualize submission funnel health, tracking bottlenecks and scorer metrics.
               </p>
             </div>
           </CardContent>
@@ -70,23 +70,25 @@ export default async function AdminPage() {
 
         <Card className="bg-slate-950 text-slate-50 shadow-xl shadow-slate-950/15">
           <CardHeader>
-            <CardTitle className="text-slate-50">Next build target</CardTitle>
+            <CardTitle className="text-slate-50">Quick Status Reference</CardTitle>
             <CardDescription className="text-slate-300">
-              Session 2.1 is in place, so the next step is wiring the form builder into draft events.
+              The status of connected modules in your deployment structure.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm font-semibold text-white">Ready now</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Protected admin routes, role-aware navigation, draft event creation, and event inventory.
-              </p>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">Database Cluster</p>
+                <p className="mt-1 text-sm leading-6 text-slate-300">Supabase Connected</p>
+              </div>
+              <div className="size-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm font-semibold text-white">Coming next</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                The drag-and-drop form builder, preview flow, and draft schema editing.
-              </p>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">Auth Core</p>
+                <p className="mt-1 text-sm leading-6 text-slate-300">NextAuth Secure Mode</p>
+              </div>
+              <div className="size-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
             </div>
           </CardContent>
         </Card>

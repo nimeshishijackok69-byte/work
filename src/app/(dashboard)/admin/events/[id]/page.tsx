@@ -18,7 +18,7 @@ import {
   requireAdminContext,
 } from '@/lib/events/service'
 import { normalizeFormSchema } from '@/lib/forms/schema'
-import { cn } from '@/lib/utils'
+import { cn, getBaseUrl } from '@/lib/utils'
 import { normalizeGradeConfig } from '@/lib/validations/events'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -99,7 +99,7 @@ export default async function EventDetailPage({
   const submissionCount = await getSubmissionCountForEvent(context, id)
   const isDraft = event.status === 'draft'
   const isPublished = event.status === 'published'
-  const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/form/${event.share_slug}`
+  const shareUrl = `${getBaseUrl()}/form/${event.share_slug}`
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">

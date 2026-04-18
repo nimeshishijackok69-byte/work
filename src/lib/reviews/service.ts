@@ -5,6 +5,7 @@ import { normalizeFormSchema } from '@/lib/forms/schema'
 import { createNotification } from '@/lib/notifications/service'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { normalizeGradeConfig } from '@/lib/validations/events'
+import { getBaseUrl } from '@/lib/utils'
 import type { Database, Json } from '@/types/database'
 
 type SupabaseAdminClient = ReturnType<typeof createAdminClient>
@@ -746,7 +747,7 @@ export async function assignReviewsForAdmin(
     event,
     createdAssignments,
     reviewersById,
-    `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reviewer`
+    `${getBaseUrl()}/reviewer`
   )
 
   return createdAssignments
