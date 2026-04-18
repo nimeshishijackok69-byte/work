@@ -256,9 +256,9 @@ export function createDefaultField(type: FieldType): FormField {
         description: 'Collect one or more supporting documents.',
         required: false,
         config: {
-          multiple: false,
-          maxFiles: 1,
-          allowedTypes: [],
+          multiple: true,
+          maxFiles: 5,
+          allowedTypes: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt'],
         },
       }
     case 'linear_scale':
